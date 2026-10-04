@@ -1,0 +1,239 @@
+\section{Minh hoạ số học: chuỗi ba tầng}
+\label{sec:vidu}
+
+Mục này kiểm chứng \eqref{eq:governing} bằng một ví dụ đủ nhỏ để tính tay trọn
+vẹn. Mọi con số dưới đây được tính ở độ chính xác kép rồi làm tròn tới sáu chữ số
+thập phân.
+
+\begin{examplebox}{Thiết lập bài toán}
+Mạng vô hướng ba tầng, mỗi tầng một nơ-ron, không có hàm kích hoạt ở đầu ra ngoài
+sigmoid:
+\[
+  z_1 = w_1 x + b,\quad a_1 = \sigma(z_1);\qquad
+  z_2 = w_2 a_1 + b,\quad a_2 = \sigma(z_2);\qquad
+  z_3 = w_3 a_2 + b,\quad a_3 = \sigma(z_3).
+\]
+Tham số và dữ liệu:
+\[
+  x = 1.0,\qquad y = 0.0,\qquad w_1 = w_2 = w_3 = 0.5,\qquad b = 0 .
+\]
+Hàm mất mát là bình phương sai số \textbf{có hệ số $\tfrac{1}{2}$}:
+\[
+  \mathcal{L} = \tfrac{1}{2}\left(a_3 - y\right)^2 .
+\]
+Hệ số $\tfrac{1}{2}$ được nêu tường minh vì nó triệt tiêu số $2$ khi lấy đạo hàm,
+cho $\partial\mathcal{L}/\partial a_3 = a_3 - y$. Bỏ qua nó sẽ làm mọi gradient
+dưới đây gấp đôi.
+\end{examplebox}
+
+\subsection{Lan truyền tiến}
+
+\begin{align*}
+  z_1 &= 0.5\times 1.0 + 0 = 0.500000, &
+  a_1 &= \sigma(0.500000) = 0.622459,\\[2pt]
+  z_2 &= 0.5\times 0.622459 = 0.311230, &
+  a_2 &= \sigma(0.311230) = 0.577185,\\[2pt]
+  z_3 &= 0.5\times 0.577185 = 0.288593, &
+  a_3 &= \sigma(0.288593) = 0.571652 .
+\end{align*}
+Mất mát:
+\[
+  \mathcal{L} = \tfrac{1}{2}\left(0.571652 - 0\right)^2
+              = \tfrac{1}{2}\times 0.326786
+              = 0.163393 .
+\]
+
+\subsection{Lan truyền ngược, từng phép nhân một}
+
+Áp dụng \eqref{eq:deltarec} ở dạng vô hướng:
+$\delta_l = \sigma'(z_l)\,w_{l+1}\,\delta_{l+1}$, với
+$\delta_3 = (a_3-y)\,\sigma'(z_3)$ và
+$\partial\mathcal{L}/\partial w_l = \delta_l\,a_{l-1}$ (trong đó $a_0 = x$).
+
+\medskip
+\noindent\textbf{Tầng 3.}
+\begin{align*}
+  \sigma'(z_3) &= a_3(1-a_3) = 0.571652\times 0.428348 = 0.244866,\\
+  \delta_3 &= (a_3 - y)\,\sigma'(z_3) = 0.571652\times 0.244866 = 0.139978,\\
+  \frac{\partial\mathcal{L}}{\partial w_3} &= \delta_3\, a_2
+    = 0.139978\times 0.577185 = 0.080793 .
+\end{align*}
+
+\noindent\textbf{Tầng 2.}
+\begin{align*}
+  \sigma'(z_2) &= a_2(1-a_2) = 0.577185\times 0.422815 = 0.244042,\\
+  \delta_2 &= \sigma'(z_2)\, w_3\, \delta_3
+    = 0.244042\times 0.5\times 0.139978 = 0.017080,\\
+  \frac{\partial\mathcal{L}}{\partial w_2} &= \delta_2\, a_1
+    = 0.017080\times 0.622459 = 0.010632 .
+\end{align*}
+
+\noindent\textbf{Tầng 1.}
+\begin{align*}
+  \sigma'(z_1) &= a_1(1-a_1) = 0.622459\times 0.377541 = 0.235004,\\
+  \delta_1 &= \sigma'(z_1)\, w_2\, \delta_2
+    = 0.235004\times 0.5\times 0.017080 = 0.002007,\\
+  \frac{\partial\mathcal{L}}{\partial w_1} &= \delta_1\, a_0
+    = 0.002007\times 1.0 = 0.002007 .
+\end{align*}
+
+\subsection{Đọc kết quả}
+
+Mỗi bước lùi một tầng nhân gradient với đúng hai thừa số: $\sigma'(z_l) \le 0.25$
+và $w_{l+1} = 0.5$. Hệ số khuếch đại mỗi tầng vì thế là
+\[
+  c \;\approx\; 0.244 \times 0.5 \;\approx\; 0.122 ,
+\]
+phù hợp với \eqref{eq:governing}. Tỉ lệ giữa hai đầu mạng:
+\[
+  \frac{\partial\mathcal{L}/\partial w_1}{\partial\mathcal{L}/\partial w_3}
+  = \frac{0.002007}{0.080793}
+  = 0.024841
+  \;\approx\; \frac{1}{40} .
+\]
+
+Với cùng một tốc độ học $\eta$, tầng $1$ nhận bước cập nhật nhỏ hơn tầng $3$
+khoảng \textbf{$40$ lần} --- và đây mới chỉ là mạng \emph{ba} tầng. Ngoại suy với
+hệ số $c \approx 0.122$ mỗi tầng, ở $L = 10$ tỉ lệ giữa tầng đầu và tầng cuối là
+\[
+  c^{\,9} \approx 0.122^{9} \approx 5.99\times10^{-9},
+\]
+tức tầng đầu học chậm hơn tầng cuối hơn \emph{một trăm triệu} lần. Ở tốc độ đó,
+tầng đầu về thực chất giữ nguyên giá trị khởi tạo ngẫu nhiên trong suốt quá trình
+huấn luyện: mạng $10$ tầng hoạt động như một mạng $2$--$3$ tầng đặt sau một phép
+biến đổi ngẫu nhiên cố định. Đây chính là cơ chế vi mô của \emph{cái bẫy mạng
+nông} mô tả ở Mục~\ref{sec:tongquan}.
+
+\begin{notebox}
+Ví dụ này dùng $w = 0.5$, tức $\sigma_{\max}(\mathbf{W}) = 0.5 < 1$, nên
+\emph{cả hai} nguyên nhân ở Mục~\ref{sec:nguyennhan} cùng tác động theo một
+hướng. Ngay cả khi đặt $w = 2$ để bù lại ($c \approx 0.244\times 2 = 0.488$),
+gradient vẫn suy giảm --- phải tới $w = 4$ mới hoà vốn, và khi đó $z$ bị đẩy vào
+vùng bão hoà đúng như cảnh báo ở cuối Mục~\ref{sec:nguyennhan}.
+\end{notebox}
+
+\subsection{Cross-entropy có cứu được không?}
+
+Một phản đề thường gặp: ``gradient nhỏ là do MSE ghép với sigmoid; dùng
+cross-entropy là hết''. Mục này kiểm tra lập luận đó bằng chính bộ số trên, và
+cho thấy nó đúng một nửa --- đúng ở tầng ra, sai ở các tầng ẩn.
+
+\subsubsection{Triệt tiêu ở tầng ra}
+
+Với nhãn nhị phân, mất mát cross-entropy là
+\[
+  \mathcal{L}_{\text{BCE}} = -\bigl[\,y\log a_3 + (1-y)\log(1-a_3)\,\bigr].
+\]
+Đạo hàm theo đầu ra:
+\[
+  \frac{\partial\mathcal{L}_{\text{BCE}}}{\partial a_3}
+  = -\frac{y}{a_3} + \frac{1-y}{1-a_3}
+  = \frac{-y(1-a_3) + (1-y)a_3}{a_3(1-a_3)}
+  = \frac{a_3 - y}{a_3\bigl(1-a_3\bigr)} .
+\]
+Nhân với $\sigma'(z_3) = a_3(1-a_3)$ để được $\delta_3$:
+\begin{equation}
+  \delta_3
+  = \frac{\partial\mathcal{L}_{\text{BCE}}}{\partial a_3}\cdot\sigma'(z_3)
+  = \frac{a_3-y}{\,\underbrace{a_3(1-a_3)}_{\text{mẫu số}}\,}
+    \cdot\underbrace{a_3(1-a_3)}_{=\;\sigma'(z_3)}
+  = a_3 - y .
+  \label{eq:bcecancel}
+\end{equation}
+\textbf{Phép triệt tiêu ở~\eqref{eq:bcecancel} là toàn bộ nội dung của lập luận
+trên.} Mẫu số của $\partial\mathcal{L}/\partial a_3$ đúng bằng $\sigma'(z_3)$,
+nên thừa số $\le 1/4$ biến mất khỏi tầng ra. Với MSE thì không:
+$\partial\mathcal{L}/\partial a_3 = a_3-y$ và $\delta_3 = (a_3-y)\sigma'(z_3)$
+vẫn mang thừa số bão hoà.
+
+\subsubsection{Tính lại với cùng bộ số}
+
+Giữ nguyên $x=1.0$, $y=0$, $w_1=w_2=w_3=0.5$, $b=0$, nên lan truyền tiến không
+đổi: $a_1 = 0.622459$, $a_2 = 0.577185$, $a_3 = 0.571652$. Mất mát:
+\[
+  \mathcal{L}_{\text{BCE}} = -\log(1-a_3) = -\log(0.428348) = 0.847818 .
+\]
+
+\noindent\textbf{Tầng 3.}
+\begin{align*}
+  \frac{\partial\mathcal{L}}{\partial a_3}
+    &= \frac{0.571652 - 0}{0.571652\times 0.428348}
+     = \frac{0.571652}{0.244866} = 2.334548,\\
+  \delta_3 &= 2.334548\times 0.244866 = 0.571652 \;=\; a_3 - y \quad\checkmark\\
+  \frac{\partial\mathcal{L}}{\partial w_3} &= \delta_3\,a_2
+     = 0.571652\times 0.577185 = 0.329949 .
+\end{align*}
+
+\noindent\textbf{Tầng 2 và tầng 1.} Truy hồi ở các tầng ẩn \emph{không thay đổi}
+--- nó không chứa hàm mất mát:
+\begin{align*}
+  \delta_2 &= \sigma'(z_2)\,w_3\,\delta_3
+     = 0.244042\times 0.5\times 0.571652 = 0.069753,\\
+  \frac{\partial\mathcal{L}}{\partial w_2} &= \delta_2\,a_1
+     = 0.069753\times 0.622459 = 0.043419,\\[3pt]
+  \delta_1 &= \sigma'(z_1)\,w_2\,\delta_2
+     = 0.235004\times 0.5\times 0.069753 = 0.008196,\\
+  \frac{\partial\mathcal{L}}{\partial w_1} &= \delta_1\,a_0
+     = 0.008196\times 1.0 = 0.008196 .
+\end{align*}
+
+\subsubsection{Kết quả quyết định: tỉ lệ suy giảm không phụ thuộc hàm mất mát}
+
+Mọi gradient dưới BCE đều lớn hơn dưới MSE --- $0.329949$ so với $0.080793$ ở
+tầng $3$, gấp khoảng $4.08$ lần. Nhưng câu hỏi đúng không phải ``gradient có lớn
+hơn không'', mà ``tầng $1$ có bắt kịp tầng $3$ không''. Ta chứng minh là
+\emph{không}, và chứng minh ở mức đồng nhất thức chứ không phải xấp xỉ.
+
+Với mọi hàm mất mát khả vi, truy hồi tầng ẩn là
+$\delta_l = \sigma'(z_l)\,w_{l+1}\,\delta_{l+1}$, nên
+\[
+  \delta_1 = \bigl[\sigma'(z_1)w_2\bigr]\bigl[\sigma'(z_2)w_3\bigr]\delta_3 .
+\]
+Do đó
+\begin{equation}
+  \frac{\partial\mathcal{L}/\partial w_1}{\partial\mathcal{L}/\partial w_3}
+  = \frac{\delta_1\,x}{\delta_3\,a_2}
+  = \frac{\bigl[\sigma'(z_1)w_2\bigr]\bigl[\sigma'(z_2)w_3\bigr]\,\delta_3\,x}
+         {\delta_3\,a_2}
+  = \bigl[\sigma'(z_1)w_2\bigr]\bigl[\sigma'(z_2)w_3\bigr]\frac{x}{a_2}.
+  \label{eq:lossfree}
+\end{equation}
+$\delta_3$ --- đại lượng duy nhất mà hàm mất mát chạm tới --- \textbf{triệt tiêu
+hoàn toàn}. Vế phải chỉ còn chứa đạo hàm hàm kích hoạt, trọng số và kích hoạt,
+không còn dấu vết nào của $\mathcal{L}$. Kiểm chứng bằng số:
+\[
+  \bigl[0.235004\times0.5\bigr]\bigl[0.244042\times0.5\bigr]\frac{1.0}{0.577185}
+  = 0.024841 ,
+\]
+đúng bằng tỉ lệ đã tính ở cả hai cột của bảng dưới.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\rowcolor{rowLavender}
+\textbf{Hàm mất mát} & $\boldsymbol{\delta_3}$ &
+$\partial\mathcal{L}/\partial w_3$ & $\partial\mathcal{L}/\partial w_1$ &
+\textbf{tỉ lệ $w_1\!:\!w_3$} \\
+\midrule
+MSE, $\tfrac12(a_3-y)^2$ & $0.139978$ & $0.080793$ & $0.002007$ & $0.024841$ \\
+\addlinespace[2pt]
+Cross-entropy nhị phân   & $0.571652$ & $0.329949$ & $0.008196$ & $0.024841$ \\
+\bottomrule
+\end{tabular}
+
+\begin{captionbelowboxaivn}
+Bảng 2: Cross-entropy phóng đại toàn bộ trường gradient (cột $2$--$4$) nhưng
+không làm phẳng nó: tỉ lệ giữa tầng đầu và tầng cuối ở cột cuối là một con số
+\emph{giống hệt nhau}, đúng như~\eqref{eq:lossfree} tiên đoán.
+\end{captionbelowboxaivn}
+\end{table}
+
+\begin{notebox}
+Cross-entropy chữa được hiện tượng ``học chậm ở tầng ra khi dự đoán sai nặng'' ---
+một vấn đề có thật và khác hẳn. Nó \emph{không} chữa triệt tiêu gradient, vì
+nguyên nhân của triệt tiêu nằm ở tích $\prod\sigma'(z_k)w_{k+1}$ giữa các tầng
+ẩn, nơi hàm mất mát không có mặt. Nói ngắn gọn: cross-entropy \textbf{đổi thang}
+trường gradient chứ không \textbf{đổi hình dạng} của nó.
+\end{notebox}

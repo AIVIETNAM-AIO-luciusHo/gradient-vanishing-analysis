@@ -1,0 +1,205 @@
+\section{Cơ sở toán học của lan truyền ngược}
+\label{sec:cosotoan}
+
+\subsection{Quy ước ký hiệu}
+\label{subsec:kyhieu}
+
+Toàn bộ tài liệu tuân thủ nghiêm ngặt quy ước sau. Mọi kết luận ở các mục sau chỉ
+đúng khi quy ước này được giữ nguyên, đặc biệt là vị trí của các phép chuyển vị.
+
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Gradient là vector cột} (bố cục mẫu số, \emph{denominator
+    layout}). Với $f:\mathbb{R}^n\to\mathbb{R}$, ta có
+    $\partial f/\partial \mathbf{x}\in\mathbb{R}^{n\times 1}$.
+  \item Mạng có $L$ tầng. Tầng $l$ có $n_l$ nơ-ron;
+    $\mathbf{W}^{[l]}\in\mathbb{R}^{n_l\times n_{l-1}}$ và
+    $\mathbf{b}^{[l]}\in\mathbb{R}^{n_l}$.
+  \item Lan truyền tiến:
+    \begin{equation}
+      \mathbf{z}^{[l]} = \mathbf{W}^{[l]}\mathbf{a}^{[l-1]} + \mathbf{b}^{[l]},
+      \qquad
+      \mathbf{a}^{[l]} = \sigma\!\left(\mathbf{z}^{[l]}\right),
+      \qquad
+      \mathbf{a}^{[0]} = \mathbf{x}.
+      \label{eq:forward}
+    \end{equation}
+    Hàm $\sigma$ tác động theo từng phần tử.
+  \item Tín hiệu lỗi tại tầng $l$:
+    \begin{equation}
+      \boldsymbol{\delta}^{[l]}
+      \;:=\; \frac{\partial\mathcal{L}}{\partial\mathbf{z}^{[l]}}
+      \;\in\;\mathbb{R}^{n_l}.
+      \label{eq:deltadef}
+    \end{equation}
+\end{itemize}
+
+\begin{notebox}
+$\boldsymbol{\delta}$ được định nghĩa theo \emph{tiền kích hoạt} $\mathbf{z}$,
+không phải theo $\mathbf{a}$. Đây là lựa chọn có chủ đích: nó khiến ma trận đường
+chéo chứa $\sigma'$ xuất hiện ở bên trái trong công thức đệ quy, và làm lộ rõ cấu
+trúc tích mà toàn bộ tài liệu xoay quanh.
+\end{notebox}
+
+\subsection{Jacobian giữa hai tầng liên tiếp}
+
+Từ~\eqref{eq:forward}, viết $\mathbf{z}^{[k]}$ như hàm của
+$\mathbf{z}^{[k-1]}$:
+\[
+  \mathbf{z}^{[k]}
+  = \mathbf{W}^{[k]}\sigma\!\left(\mathbf{z}^{[k-1]}\right) + \mathbf{b}^{[k]}.
+\]
+Lấy đạo hàm riêng từng phần tử, với $i$ chỉ số hàng của $\mathbf{z}^{[k]}$ và $j$
+chỉ số hàng của $\mathbf{z}^{[k-1]}$:
+\[
+  \frac{\partial z^{[k]}_i}{\partial z^{[k-1]}_j}
+  = W^{[k]}_{ij}\,\sigma'\!\left(z^{[k-1]}_j\right).
+\]
+Gom lại thành ma trận, ta được Jacobian tiến
+\begin{equation}
+  \frac{\partial \mathbf{z}^{[k]}}{\partial \mathbf{z}^{[k-1]}}
+  = \mathbf{W}^{[k]}\operatorname{diag}\!\left(\sigma'\!\left(\mathbf{z}^{[k-1]}\right)\right)
+  \;\in\;\mathbb{R}^{n_k\times n_{k-1}}.
+  \label{eq:jacforward}
+\end{equation}
+Ma trận đường chéo nằm \emph{bên phải} vì $\sigma'$ mang chỉ số $j$ của tầng
+nguồn.
+
+\subsection{Công thức đệ quy của tín hiệu lỗi}
+
+\begin{infobox}{Định lý --- công thức đệ quy của tín hiệu lỗi}
+Với quy ước ở \hyperref[subsec:kyhieu]{Mục II.1},
+\begin{equation}
+  \boldsymbol{\delta}^{[l]}
+  = \operatorname{diag}\!\left(\sigma'\!\left(\mathbf{z}^{[l]}\right)\right)
+    \left(\mathbf{W}^{[l+1]}\right)^{\!\top}\boldsymbol{\delta}^{[l+1]} .
+  \label{eq:deltarec}
+\end{equation}
+\end{infobox}
+
+\noindent\textit{Chứng minh.}\;
+Áp dụng quy tắc dây chuyền cho từng thành phần. Mất mát $\mathcal{L}$ phụ thuộc
+$\mathbf{z}^{[l]}$ chỉ thông qua $\mathbf{z}^{[l+1]}$, nên
+\[
+  \delta^{[l]}_i
+  = \frac{\partial\mathcal{L}}{\partial z^{[l]}_i}
+  = \sum_{m} \frac{\partial\mathcal{L}}{\partial z^{[l+1]}_m}\,
+             \frac{\partial z^{[l+1]}_m}{\partial z^{[l]}_i}
+  = \sum_{m} \delta^{[l+1]}_m\, W^{[l+1]}_{mi}\,\sigma'\!\left(z^{[l]}_i\right),
+\]
+trong đó bước cuối dùng~\eqref{eq:jacforward} với $k=l+1$. Nhân tử
+$\sigma'(z^{[l]}_i)$ không phụ thuộc $m$ nên đưa được ra ngoài tổng:
+\[
+  \delta^{[l]}_i
+  = \sigma'\!\left(z^{[l]}_i\right)\sum_{m} W^{[l+1]}_{mi}\,\delta^{[l+1]}_m
+  = \sigma'\!\left(z^{[l]}_i\right)
+    \left[\left(\mathbf{W}^{[l+1]}\right)^{\!\top}\boldsymbol{\delta}^{[l+1]}\right]_i .
+\]
+Tổng $\sum_m W^{[l+1]}_{mi}\delta^{[l+1]}_m$ chạy theo chỉ số \emph{hàng} $m$ của
+$\mathbf{W}^{[l+1]}$, tức là tích của \emph{chuyển vị} với
+$\boldsymbol{\delta}^{[l+1]}$ --- đây chính là nơi dấu chuyển vị sinh ra. Viết
+phép nhân theo từng phần tử với $\sigma'$ dưới dạng nhân ma trận đường chéo bên
+trái, ta thu được~\eqref{eq:deltarec}.\hfill$\square$
+
+Từ $\boldsymbol{\delta}^{[l]}$, gradient theo trọng số có dạng tích ngoài:
+\begin{equation}
+  \frac{\partial\mathcal{L}}{\partial\mathbf{W}^{[l]}}
+  = \boldsymbol{\delta}^{[l]}\left(\mathbf{a}^{[l-1]}\right)^{\!\top},
+  \qquad
+  \frac{\partial\mathcal{L}}{\partial\mathbf{b}^{[l]}}
+  = \boldsymbol{\delta}^{[l]}.
+  \label{eq:gradW}
+\end{equation}
+
+\begin{examplebox}{Kiểm tra chiều --- cách tự soát lỗi chuyển vị}
+Một công thức lan truyền ngược sai dấu chuyển vị hầu như luôn sai cả về chiều.
+Vì vậy phép kiểm tra chiều là công cụ soát lỗi rẻ nhất. Với~\eqref{eq:deltarec}:
+\[
+  \underbrace{\operatorname{diag}\!\left(\sigma'(\mathbf{z}^{[l]})\right)}_{n_l\times n_l}
+  \cdot
+  \underbrace{\left(\mathbf{W}^{[l+1]}\right)^{\!\top}}_{n_l\times n_{l+1}}
+  \cdot
+  \underbrace{\boldsymbol{\delta}^{[l+1]}}_{n_{l+1}\times 1}
+  \;=\;
+  \underbrace{\boldsymbol{\delta}^{[l]}}_{n_l\times 1}\quad\checkmark
+\]
+Nếu viết nhầm thành $\mathbf{W}^{[l+1]}\boldsymbol{\delta}^{[l+1]}$ (không chuyển
+vị), tích $n_{l+1}\times n_l$ nhân $n_{l+1}\times 1$ không hợp lệ trừ khi
+$n_l = n_{l+1}$ --- đó là lý do lỗi này thường ẩn mình trong các mạng có mọi tầng
+cùng độ rộng và chỉ lộ ra khi đổi kiến trúc. Tương tự
+với~\eqref{eq:gradW}: $(n_l\times 1)(1\times n_{l-1}) = n_l\times n_{l-1}$, đúng
+bằng chiều của $\mathbf{W}^{[l]}$.
+\end{examplebox}
+
+\subsection{Đối tượng trung tâm: tích Jacobian}
+
+Khai triển~\eqref{eq:deltarec} đệ quy từ tầng $L$ về tầng $l$ cho kết quả then
+chốt của toàn bộ tài liệu:
+\begin{equation}
+  \boxed{\;
+  \boldsymbol{\delta}^{[l]}
+  = \left(\prod_{k=l+1}^{L}
+      \operatorname{diag}\!\left(\sigma'\!\left(\mathbf{z}^{[k-1]}\right)\right)
+      \left(\mathbf{W}^{[k]}\right)^{\!\top}
+    \right)\boldsymbol{\delta}^{[L]}\;}
+  \label{eq:central}
+\end{equation}
+với quy ước các thừa số xếp theo $k$ tăng dần từ trái sang phải.
+
+Kết hợp~\eqref{eq:central} với~\eqref{eq:gradW}, ta thấy gradient của tầng $l$ là
+tích của $L-l$ thừa số ma trận. Đây là một \emph{tích}, không phải một tổng. Tổng
+suy giảm tuyến tính; tích suy giảm theo cấp số nhân. Toàn bộ hiện tượng triệt
+tiêu và bùng nổ gradient là hệ quả trực tiếp của sự khác biệt đó, và
+Mục~\ref{sec:nguyennhan} chỉ làm một việc: ước lượng độ lớn của mỗi thừa số
+trong~\eqref{eq:central}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=2.05cm,
+    lay/.style={draw, rounded corners=2pt, minimum width=1.15cm,
+                minimum height=0.85cm, thick, draw=aivnGreen,
+                fill=aivnGreen!8, font=\small},
+    loss/.style={draw, rounded corners=2pt, minimum width=1.15cm,
+                 minimum height=0.85cm, thick, draw=brandIndigo,
+                 fill=brandIndigo!10, font=\small},
+    fwd/.style={->, thick, aivnGreen},
+    bwd/.style={->, thick, brandIndigo}
+]
+\node[lay] (a0) {$\mathbf{a}^{[0]}$};
+\node[lay, right of=a0] (a1) {$\mathbf{a}^{[1]}$};
+\node[lay, right of=a1] (a2) {$\mathbf{a}^{[2]}$};
+\node[lay, right of=a2] (a3) {$\mathbf{a}^{[3]}$};
+\node[lay, right of=a3] (a4) {$\mathbf{a}^{[4]}$};
+\node[loss, right of=a4] (LL) {$\mathcal{L}$};
+
+% ---- forward arrows above ----
+\foreach \s/\t/\k in {a0/a1/1, a1/a2/2, a2/a3/3, a3/a4/4}{%
+  \draw[fwd] (\s.north east) to[bend left=32]
+      node[above, font=\scriptsize, text=aivnGreen]{$\mathbf{W}^{[\k]}$}
+      (\t.north west);
+}
+\draw[fwd] (a4.north east) to[bend left=32] (LL.north west);
+
+% ---- backward arrows below, opacity fading toward the input ----
+\draw[bwd, opacity=1.00] (LL.south west) to[bend left=32]
+    node[below, font=\scriptsize, text=brandIndigo]{$\boldsymbol{\delta}^{[4]}$} (a4.south east);
+\draw[bwd, opacity=0.70] (a4.south west) to[bend left=32]
+    node[below, font=\scriptsize, text=brandIndigo]{$\boldsymbol{\delta}^{[3]}$} (a3.south east);
+\draw[bwd, opacity=0.45] (a3.south west) to[bend left=32]
+    node[below, font=\scriptsize, text=brandIndigo]{$\boldsymbol{\delta}^{[2]}$} (a2.south east);
+\draw[bwd, opacity=0.25] (a2.south west) to[bend left=32]
+    node[below, font=\scriptsize, text=brandIndigo]{$\boldsymbol{\delta}^{[1]}$} (a1.south east);
+\draw[bwd, opacity=0.12] (a1.south west) to[bend left=32] (a0.south east);
+
+\node[font=\scriptsize, text=aivnGreen, above=0.95cm of a2] {lan truyền tiến};
+\node[font=\scriptsize, text=brandIndigo, below=0.95cm of a2]
+     {lan truyền ngược --- độ đậm giảm dần theo biên độ gradient};
+\end{tikzpicture}
+
+\begin{figurecaptionmodern}
+\capfig{Đồ thị tính toán của mạng $4$ tầng. Mũi tên phía trên là lan truyền tiến;
+mũi tên phía dưới là lan truyền ngược, với độ đậm giảm dần về phía đầu vào để
+biểu thị sự suy giảm biên độ của $\boldsymbol{\delta}^{[l]}$ theo~\eqref{eq:central}.\label{fig:graph}}
+\end{figurecaptionmodern}
+\end{figure}

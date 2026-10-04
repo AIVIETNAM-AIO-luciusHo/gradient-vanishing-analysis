@@ -1,0 +1,362 @@
+\section{Hai nguyên nhân cốt lõi}
+\label{sec:nguyennhan}
+
+Phương trình~\eqref{eq:central} biểu diễn gradient của tầng $l$ như một tích gồm
+$L-l$ thừa số, mỗi thừa số có dạng
+\[
+  \mathbf{M}^{[k]}
+  = \operatorname{diag}\!\left(\sigma'\!\left(\mathbf{z}^{[k-1]}\right)\right)
+    \left(\mathbf{W}^{[k]}\right)^{\!\top}.
+\]
+Mỗi thừa số là tích của \emph{hai} đối tượng, và mỗi đối tượng đóng góp một
+nguyên nhân độc lập: ma trận đường chéo mang thông tin về hàm kích hoạt, ma trận
+chuyển vị mang thông tin về trọng số. Ta phân tích lần lượt rồi hợp nhất.
+
+\subsection{Nguyên nhân 1 --- độ bão hoà của hàm kích hoạt}
+
+\begin{infobox}{Chặn trên của đạo hàm sigmoid}
+Với $\sigma(z) = \left(1+e^{-z}\right)^{-1}$, ta có
+\[
+  \sigma'(z) = \sigma(z)\bigl(1-\sigma(z)\bigr)
+  \qquad\text{và}\qquad
+  \max_{z\in\mathbb{R}}\sigma'(z) = \frac{1}{4},
+\]
+đạt được \emph{duy nhất} tại $z = 0$.
+\end{infobox}
+
+\noindent\textit{Chứng minh.}\;
+Đạo hàm trực tiếp cho
+$\sigma'(z) = e^{-z}\left(1+e^{-z}\right)^{-2}$. Viết lại theo $\sigma$:
+\[
+  \sigma'(z)
+  = \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}
+  = \sigma(z)\bigl(1-\sigma(z)\bigr).
+\]
+Đặt $u = \sigma(z)\in(0,1)$. Hàm $u\mapsto u(1-u)$ là parabol lõm xuống, đạt cực
+đại tại $u = 1/2$ với giá trị $1/4$. Vì $\sigma$ là song ánh tăng nghiêm ngặt từ
+$\mathbb{R}$ lên $(0,1)$, giá trị $u = 1/2$ ứng với đúng một điểm $z = 0$. Do đó
+$\sigma'(z)\le 1/4$ với mọi $z$, dấu bằng chỉ tại gốc.\hfill$\square$
+
+\medskip
+Hệ quả trực tiếp: ma trận đường chéo trong mỗi thừa số có chuẩn phổ
+$\left\|\operatorname{diag}(\sigma'(\mathbf{z}))\right\|_2
+= \max_i \sigma'(z_i) \le 1/4$. Ngay cả trong trường hợp \emph{thuận lợi nhất}
+--- mọi tiền kích hoạt đều đúng bằng $0$ --- mỗi tầng vẫn nhân gradient với một
+hệ số không quá $1/4$. Nếu $\left\|\mathbf{W}^{[k]}\right\|_2 \approx 1$, biên độ
+gradient co lại theo $4^{-L}$.
+
+\medskip
+\noindent Bảng suy giảm dưới đây cho thấy tốc độ của hiện tượng:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}crl@{}}
+\toprule
+\rowcolor{rowLavender}
+\textbf{Số tầng $L$} & \textbf{$0.25^{L}$} & \textbf{Diễn giải} \\
+\midrule
+$1$  & $2.500000\times10^{-1}$  & suy giảm nhẹ, chưa đáng ngại \\
+$5$  & $9.765625\times10^{-4}$  & tầng đầu học chậm hơn tầng cuối $\sim10^3$ lần \\
+$10$ & $9.536743\times10^{-7}$  & chỉ còn $8$ lần epsilon máy \texttt{float32} \\
+$20$ & $9.094947\times10^{-13}$ & dưới ngưỡng phân giải của \texttt{float32} \\
+$50$ & $7.888609\times10^{-31}$ & bằng không về mặt số học \\
+\bottomrule
+\end{tabular}
+
+\end{table}
+
+Con số ở dòng $L=10$ đáng được nhấn mạnh. Epsilon máy của \texttt{float32} là
+$\varepsilon_{32} \approx 1.192093\times10^{-7}$. Giá trị $0.25^{10} \approx
+9.536743\times10^{-7}$ chỉ lớn hơn $\varepsilon_{32}$ đúng $8$ lần. Nghĩa là với
+một mạng sigmoid $10$ tầng huấn luyện ở độ chính xác đơn, gradient tầng đầu đã
+tiệm cận giới hạn biểu diễn của kiểu số: phép cộng $w \leftarrow w - \eta g$ với
+$g$ nhỏ như vậy bị làm tròn về chính $w$, và tầng đó \emph{đóng băng hoàn toàn}.
+Ở $L=20$, giá trị $9.094947\times10^{-13}$ đã nằm sâu dưới $\varepsilon_{32}$.
+
+\subsubsection{Hàm tanh làm chậm vấn đề nhưng không loại bỏ nó}
+
+Với $\tanh$, ta có $\tanh'(z) = 1 - \tanh^2(z)$, và
+\[
+  \max_{z\in\mathbb{R}}\tanh'(z) = 1,
+\]
+đạt được duy nhất tại $z = 0$. Chặn trên bằng $1$ thay vì $1/4$ là một cải thiện
+thực chất: tại chế độ tuyến tính quanh gốc, $\tanh$ bảo toàn biên độ gradient
+trong khi sigmoid làm co lại bốn lần mỗi tầng.
+
+Tuy nhiên cải thiện này chỉ tồn tại \emph{tại một điểm duy nhất}. Với $|z|\ge 2$
+đã có $\tanh'(z) \le 0.072$, nhỏ hơn cả chặn $1/4$ của sigmoid. Trong một mạng
+thật, các tiền kích hoạt phân tán trên một khoảng chứ không tập trung tại $0$, nên
+giá trị $\tanh'$ \emph{trung bình} luôn nhỏ hơn $1$ ngặt. Tích của $L$ số nhỏ hơn
+$1$ ngặt vẫn hội tụ về $0$ theo cấp số nhân --- chỉ với cơ số lớn hơn.
+
+\begin{notebox}
+$\tanh$ dời ngưỡng chiều sâu mà vấn đề trở nên nghiêm trọng, chứ không thay đổi
+bản chất cấp số nhân của nó. Đây là lý do việc chuyển từ sigmoid sang $\tanh$
+giúp huấn luyện mạng $10$ tầng nhưng vẫn thất bại ở mạng $50$ tầng.
+\end{notebox}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.92\linewidth, height=6.4cm,
+    xlabel={$z$}, ylabel={giá trị},
+    xmin=-6, xmax=6, ymin=-1.15, ymax=1.35,
+    domain=-6:6, samples=201,
+    axis lines=left,
+    legend style={font=\scriptsize, at={(0.5,1.30)}, anchor=north,
+                  legend columns=2, draw=none, fill=none},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    grid=major, grid style={gray!20},
+]
+% ---- saturation regions ----
+\fill[gray!18] (axis cs:-6,-1.15) rectangle (axis cs:-3,1.35);
+\fill[gray!18] (axis cs:3,-1.15)  rectangle (axis cs:6,1.35);
+\node[font=\scriptsize, text=gray!60!black] at (axis cs:-4.5,-0.85) {bão hoà};
+\node[font=\scriptsize, text=gray!60!black] at (axis cs:4.5,-0.85)  {bão hoà};
+
+% ---- curves ----
+\addplot[thick, aivnGreen]        {1/(1+exp(-x))};
+\addlegendentry{$\sigma(z)$}
+\addplot[thick, brandIndigo]      {tanh(x)};
+\addlegendentry{$\tanh(z)$}
+\addplot[thick, aivnGreen, dashed]   {(1/(1+exp(-x)))*(1-1/(1+exp(-x)))};
+\addlegendentry{$\sigma'(z)$}
+\addplot[thick, brandIndigo, dashed] {1-(tanh(x))^2};
+\addlegendentry{$\tanh'(z)$}
+
+% ---- the 0.25 ceiling ----
+\draw[densely dotted, thick, red!70!black]
+    (axis cs:-6,0.25) -- (axis cs:6,0.25);
+\node[font=\scriptsize, text=red!70!black, anchor=west]
+    at (axis cs:-5.9,0.38) {trần $\sigma' = 1/4$};
+\end{axis}
+\end{tikzpicture}
+
+\begin{figurecaptionmodern}
+\capfig{Sigmoid và $\tanh$ cùng đạo hàm của chúng trên $[-6,6]$. Vùng xám là miền
+bão hoà, nơi đạo hàm tiến về $0$. Đường chấm đỏ là trần $\sigma' = 1/4$ mà đạo
+hàm sigmoid không bao giờ vượt qua.\label{fig:sat}}
+\end{figurecaptionmodern}
+\end{figure}
+
+\subsection{Nguyên nhân 2 --- bán kính phổ của ma trận trọng số}
+
+Nguyên nhân thứ hai độc lập hoàn toàn với hàm kích hoạt: ngay cả với một mạng
+tuyến tính ($\sigma = \mathrm{id}$, mọi $\sigma' = 1$), tích các ma trận trọng số
+vẫn có thể suy biến.
+
+Ký hiệu $\sigma_{\max}(\mathbf{A}) = \|\mathbf{A}\|_2$ là giá trị kỳ dị lớn nhất
+(chuẩn phổ). Tính chất dưới nhân của chuẩn phổ,
+$\|\mathbf{A}\mathbf{B}\|_2 \le \|\mathbf{A}\|_2\|\mathbf{B}\|_2$, cho ngay
+
+\begin{infobox}{Chặn trên của tích ma trận}
+\[
+  \left\|\left(\prod_{k}\mathbf{W}^{[k]}\right)\mathbf{v}\right\|
+  \;\le\;
+  \left(\prod_{k}\sigma_{\max}\!\left(\mathbf{W}^{[k]}\right)\right)\|\mathbf{v}\| .
+\]
+\end{infobox}
+
+Hệ quả là một phép phân loại sạch sẽ theo ba chế độ:
+
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item Nếu $\sigma_{\max}\!\left(\mathbf{W}^{[k]}\right) < 1$ với mọi $k$, tích
+    các chặn là một cấp số nhân công bội nhỏ hơn $1$: gradient
+    \textbf{suy giảm theo cấp số nhân}.
+  \item Nếu $\sigma_{\max}\!\left(\mathbf{W}^{[k]}\right) > 1$ với mọi $k$, chặn
+    trên phân kỳ. Trường hợp này không tự động kéo theo bùng nổ (chặn trên lớn
+    không bắt buộc tích phải lớn), nhưng nếu thêm giả thiết các hướng kỳ dị
+    trội không trực giao nhau --- điều xảy ra với xác suất cao khi trọng số khởi
+    tạo ngẫu nhiên --- thì biên độ thực sự \textbf{tăng theo cấp số nhân}.
+  \item Chế độ biên $\sigma_{\max} = 1$ là không bền: nhiễu số học bất kỳ cũng
+    đẩy hệ sang một trong hai phía.
+\end{itemize}
+
+Đây chính là lý do \emph{khởi tạo} trọng số là một quyết định thiết kế chứ không
+phải chi tiết kỹ thuật. Xavier~\cite{GlorotBengio2010} và He~\cite{He2015} không
+làm gì khác ngoài việc chọn phương sai khởi tạo sao cho
+$\sigma_{\max}(\mathbf{W})$ nằm gần $1$ ngay từ bước đầu tiên.
+
+\subsection{Hợp nhất: Chặn trên bảo thủ của hệ số co giãn Jacobian}
+
+Ghép hai nguyên nhân lại. Áp dụng tính dưới nhân của chuẩn phổ,
+$\left\|\mathbf{A}\mathbf{B}\right\|_2 \le \left\|\mathbf{A}\right\|_2\left\|\mathbf{B}\right\|_2$,
+cho từng thừa số của~\eqref{eq:central}:
+\[
+  \left\|\mathbf{M}^{[k]}\right\|_2
+  \;\le\;
+  \underbrace{\left\|\operatorname{diag}\!\left(\sigma'(\mathbf{z}^{[k-1]})\right)\right\|_2}_{\le\;\max\sigma'}
+  \cdot
+  \underbrace{\left\|\left(\mathbf{W}^{[k]}\right)^{\!\top}\right\|_2}_{=\;\sigma_{\max}(\mathbf{W}^{[k]})} .
+\]
+Do đó
+\begin{equation}
+  \left\|\boldsymbol{\delta}^{[l]}\right\|
+  \;\le\;
+  c^{\,L-l}\left\|\boldsymbol{\delta}^{[L]}\right\|,
+  \qquad
+  \boxed{\;c \;=\; \sigma_{\max}(\mathbf{W}) \cdot \max\sigma'\;}
+  \label{eq:governing}
+\end{equation}
+với $c$ là \emph{chặn trên} của hệ số co giãn mỗi tầng, không phải giá trị thực
+của nó.
+
+\textbf{Vì sao chặn này bảo thủ.} Bất đẳng thức~\eqref{eq:governing} thay mỗi
+thừa số bằng trường hợp xấu nhất của nó. Hệ số co giãn thực tế của một tầng,
+$\left\|\mathbf{M}^{[k]}\mathbf{v}\right\| / \left\|\mathbf{v}\right\|$ với
+$\mathbf{v}$ là vector sai số đang lan truyền ngược, còn phụ thuộc vào hai yếu tố
+mà $c$ bỏ qua:
+\begin{enumerate}[leftmargin=*, itemsep=1pt, label=(\alph*)]
+  \item \textbf{Dữ liệu, qua tiền kích hoạt.} Ma trận
+    $\operatorname{diag}(\sigma'(\mathbf{z}^{[k-1]}))$ được tính tại tiền kích
+    hoạt thực $\mathbf{z}^{[k-1]}$, vốn phụ thuộc đầu vào $\mathbf{x}$ và mọi tầng
+    phía trước. Ở vùng bão hoà của sigmoid, hoặc tại các nơ-ron ReLU chết
+    ($\sigma'=0$), phần tử đường chéo nhỏ hơn hẳn $\max\sigma'$.
+  \item \textbf{Sự thẳng hàng với các hướng kỳ dị.} Đẳng thức
+    $\left\|(\mathbf{W}^{[k]})^{\top}\mathbf{v}\right\| = \sigma_{\max}(\mathbf{W}^{[k]})\left\|\mathbf{v}\right\|$
+    chỉ xảy ra khi $\mathbf{v}$ nằm dọc vector kỳ dị trội. Một vector lan truyền
+    ngược bất kỳ chỉ đặt một phần năng lượng lên các hướng đó, nên hệ số co giãn
+    thực nằm đâu đó giữa $\sigma_{\min}$ và $\sigma_{\max}$.
+\end{enumerate}
+
+Vì vậy các kết luận rút ra được từ $c$ là kết luận \emph{một chiều}:
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+  \item $c < 1$ là \emph{điều kiện đủ} để gradient co lại theo cấp số nhân: chặn
+    trên $c^{\,L-l}\left\|\boldsymbol{\delta}^{[L]}\right\|$ đã giảm theo hàm mũ
+    thì $\left\|\boldsymbol{\delta}^{[l]}\right\|$, bị chặn bởi nó, cũng phải giảm
+    ít nhất nhanh như vậy.
+  \item $c > 1$ chỉ làm cho bùng nổ \emph{có thể xảy ra}, không bảo đảm nó xảy
+    ra: chặn trên tăng không kéo theo giá trị thực tăng, vì (a) và (b) có thể
+    giữ hệ số co giãn thực dưới $1$.
+  \item $c \approx 1$ chỉ bảo đảm chặn trên không co hay giãn theo hàm mũ; giá
+    trị thực vẫn có thể suy giảm vì (a) và (b). Mục~\ref{sec:thucnghiem} đo
+    trực tiếp khoảng cách giữa chặn và giá trị thực.
+\end{itemize}
+
+Bây giờ thay số cho sigmoid. Vì $\max\sigma' = 1/4$, để chặn trên đạt $c \ge 1$
+ta cần
+\[
+  \sigma_{\max}(\mathbf{W}) \;\ge\; \frac{1}{\max\sigma'} \;=\; 4 .
+\]
+Nghĩa là ma trận trọng số phải có chuẩn phổ vượt $4$ \emph{chỉ để hoà vốn}. Nhưng
+một ma trận với $\sigma_{\max} = 4$ khuếch đại tín hiệu \emph{tiến} lên bốn lần
+mỗi tầng, đẩy các tiền kích hoạt $\mathbf{z}$ ra xa gốc --- đúng vào vùng bão
+hoà, nơi $\sigma'$ sụp đổ về $0$ và giả thiết $\max\sigma' = 1/4$ không còn
+đúng. Hệ thống tự phá huỷ điều kiện hoà vốn của chính nó.
+
+\subsection{Nghịch lý phương sai: vì sao không thể phóng đại trọng số}
+
+Lập luận ở cuối mục trước mới chỉ là một khẳng định định tính. Mục này chứng minh
+nó: điều kiện $c\ge1$ \emph{không thể} đạt được bằng cách tăng thang đo trọng số,
+vì chính việc tăng đó phá huỷ giả thiết mà nó dựa vào.
+
+\subsubsection{Truy hồi phương sai theo chiều tiến}
+
+Giả sử tại thời điểm khởi tạo:
+\begin{enumerate}[leftmargin=*, itemsep=1pt, label=(G\arabic*)]
+  \item $W^{[l]}_{ij}\sim\mathcal{N}(0, s^2)$ độc lập cùng phân phối, mọi tầng
+    rộng $n$;
+  \item các trọng số độc lập với các kích hoạt đầu vào của cùng tầng;
+  \item các thành phần $a^{[l-1]}_j$ không tương quan với nhau;
+  \item hàm kích hoạt hoạt động ở chế độ gần tuyến tính quanh gốc, tức
+    $\sigma(z)\approx\sigma(0) + \sigma'(0)z$ với $\sigma'(0)$ là một hằng số bậc
+    đơn vị.
+\end{enumerate}
+
+Đây là các giả thiết \emph{bậc một}, không phải đồng nhất thức. Chúng đúng tại
+bước khởi tạo ngẫu nhiên và xấu đi khi huấn luyện tiến triển --- một điểm sẽ
+quay lại ở Mục~\ref{sec:tongket} khi bàn về chuẩn hoá.
+
+Với $z^{[l]}_i = \sum_{j=1}^{n} W^{[l]}_{ij}a^{[l-1]}_j$, do (G1)--(G3) và
+$\mathbb{E}[W]=0$:
+\[
+  \operatorname{Var}\!\left(z^{[l]}_i\right)
+  = \sum_{j=1}^{n}\operatorname{Var}\!\left(W^{[l]}_{ij}\right)
+                  \operatorname{Var}\!\left(a^{[l-1]}_j\right)
+  = n\,s^2\operatorname{Var}\!\left(a^{[l-1]}\right).
+\]
+Dùng (G4) để thay $\operatorname{Var}(a^{[l-1]})\approx\sigma'(0)^2
+\operatorname{Var}(z^{[l-1]})$ và gộp hằng số $\sigma'(0)^2$ vào $s^2$, ta được
+truy hồi
+\begin{equation}
+  \operatorname{Var}\!\left(\mathbf{z}^{[l]}\right)
+  \;\approx\; \left(n s^2\right)\operatorname{Var}\!\left(\mathbf{z}^{[l-1]}\right)
+  \;\Longrightarrow\;
+  \operatorname{Var}\!\left(\mathbf{z}^{[l]}\right)
+  \;\approx\; \left(n s^2\right)^{l}\operatorname{Var}\!\left(\mathbf{x}\right).
+  \label{eq:varrec}
+\end{equation}
+Đại lượng $n s^2$ đóng vai trò hệ số khuếch đại phương sai mỗi tầng, hoàn toàn
+song song với $c$ ở~\eqref{eq:governing} nhưng theo chiều ngược lại.
+
+\subsubsection{Thế kẹt}
+
+Với ma trận ngẫu nhiên $n\times n$ có phương sai phần tử $s^2$, định luật
+Bai--Yin cho $\sigma_{\max}(\mathbf{W})\approx 2s\sqrt{n}$. Điều kiện hoà vốn
+$\sigma_{\max}(\mathbf{W})\ge4$ của mục trước do đó tương đương
+\[
+  2s\sqrt{n}\;\ge\;4
+  \quad\Longleftrightarrow\quad
+  n s^2 \;\ge\; 4 .
+\]
+Thay vào~\eqref{eq:varrec}:
+\[
+  \operatorname{Var}\!\left(\mathbf{z}^{[l]}\right)\;\gtrsim\;4^{l}\operatorname{Var}(\mathbf{x}),
+  \qquad\text{tức}\qquad
+  \left|z^{[l]}\right| \;\sim\; 2^{\,l}\,\left|x\right| .
+\]
+Độ lớn tiền kích hoạt tăng theo cấp số nhân với chiều sâu. Nhưng ở vùng $|z|$
+lớn, $\sigma(z)\to1$ và $1-\sigma(z)\approx e^{-|z|}$, nên
+\begin{equation}
+  \sigma'(z) = \sigma(z)\bigl(1-\sigma(z)\bigr) \;\approx\; e^{-|z|}
+  \qquad (|z|\gg1).
+  \label{eq:expdecay}
+\end{equation}
+Nghĩa là $\sigma'$ suy giảm \textbf{theo hàm mũ} của $|z|$, trong khi $|z|$ lại
+tăng theo \emph{cấp số nhân} của $l$. Ghép hai điều đó:
+\[
+  \max\sigma'\big|_{\text{tầng }l}\;\sim\;e^{-2^{\,l}|x|},
+\]
+một sự sụp đổ nhanh hơn mọi thứ mà việc nâng $\sigma_{\max}(\mathbf{W})$ từ $1$
+lên $4$ có thể bù lại --- vế sau chỉ là một thừa số hằng bằng $4$, vế trước là
+hàm mũ kép theo chiều sâu.
+
+\begin{notebox}
+\textbf{Bùng nổ phương sai tiến ĐỔI LẤY triệt tiêu gradient ngược.} Với hàm kích
+hoạt bão hoà, $c = \sigma_{\max}(\mathbf{W})\cdot\max\sigma'$ \emph{không thể}
+được đưa về $1$ bằng cách chỉnh thang đo trọng số: mọi mức tăng $s$ đủ lớn để
+nâng $\sigma_{\max}$ đều đẩy $\mathbf{z}$ ra vùng bão hoà theo~\eqref{eq:varrec},
+nơi $\max\sigma'$ sụp đổ theo hàm mũ~\eqref{eq:expdecay}. Hai thừa số của $c$
+không độc lập --- chúng bị ràng buộc ngược chiều qua chính thang đo trọng số.
+\end{notebox}
+
+Kết luận này có giá trị kiến tạo: nó \emph{loại trừ} toàn bộ một họ giải pháp và
+chỉ ra chính xác ba lối thoát còn lại, mỗi lối phá vỡ một mắt xích của thế kẹt:
+
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Đổi hàm kích hoạt} --- nâng $\max\sigma'$ lên $1$ mà không đụng
+    tới $s$, phá vỡ~\eqref{eq:expdecay}. Đây là ReLU và các biến thể~\cite{He2015}.
+  \item \textbf{Tái định tâm $\mathbf{z}$} --- giữ $\operatorname{Var}(\mathbf{z}^{[l]})$
+    không đổi theo $l$ bất chấp~\eqref{eq:varrec}, tức cưỡng bức $ns^2\approx1$ ở
+    mọi tầng và mọi bước huấn luyện. Đây là ý tưởng chung của khởi tạo
+    Xavier~\cite{GlorotBengio2010} (đúng tại bước $0$) và của chuẩn
+    hoá~\cite{IoffeSzegedy2015} (duy trì suốt quá trình).
+  \item \textbf{Đổi cấu trúc Jacobian} --- thêm số hạng bậc không để tích thôi là
+    tích thuần tuý, khiến câu hỏi về $c$ trở nên không còn quyết định. Đây là kết
+    nối tắt~\cite{He2016ResNet}.
+\end{enumerate}
+
+Ba lối thoát này chính là ba cột đầu của bảng tổng kết ở Mục~\ref{sec:tongket};
+chúng không phải một danh sách mẹo rời rạc mà là một phân loại vét cạn suy ra từ
+\eqref{eq:governing} và~\eqref{eq:varrec}.
+
+\begin{notebox}
+\textbf{Triệt tiêu và bùng nổ không phải hai lỗi khác nhau.} Chúng là cùng một
+cơ chế --- tích lặp của các Jacobian tầng --- quan sát ở hai phía của ngưỡng
+$c = 1$. Mọi biện pháp khắc phục ở Mục~\ref{sec:tongket} đều là hệ quả của
+\eqref{eq:governing}: hoặc nâng $\max\sigma'$, hoặc điều khiển
+$\sigma_{\max}(\mathbf{W})$, hoặc giữ $\mathbf{z}$ ngoài vùng bão hoà, hoặc thay
+đổi cấu trúc Jacobian để nó không còn là tích thuần tuý.
+\end{notebox}

@@ -1,0 +1,31 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.out
+*.lof
+*.loa
+main.log
+*-blx.bib
+*.run.xml
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / Windows-WSL metadata
+.DS_Store
+*:Zone.Identifier
+
+# Local-only files (not part of the public study)
+*.bak
+AIO_Master_Handbook.pdf
+experiment_numpy_legacy.py
+tuan3_baocao_tien_do.md
+
+# NOTE: *.log is deliberately NOT ignored globally --
+# training_dynamics.log is kept as empirical evidence.

@@ -1,0 +1,299 @@
+\section{Lan truyền ngược theo thời gian}
+\label{sec:bptt}
+
+Mạng hồi quy (RNN) đưa vấn đề triệt tiêu gradient sang một dạng nghiêm trọng hơn
+hẳn. Lý do không nằm ở chiều sâu lớn hơn, mà ở một tính chất cấu trúc sẽ được chỉ
+rõ ở Mục~V.3.
+
+\begin{notebox}
+\textbf{Quy ước ký hiệu cho mục này.} $T$ (chữ nghiêng, in thường trong công
+thức) luôn là \emph{số bước thời gian}. Phép chuyển vị luôn viết bằng $\top$, ví
+dụ $\mathbf{W}_{hh}^{\top}$. Trong toàn mục này không bao giờ dùng $W^{T}$ để chỉ
+chuyển vị --- ký hiệu đó sẽ mang nghĩa ``luỹ thừa $T$''.
+\end{notebox}
+
+\subsection{Mô hình và ký hiệu}
+
+Xét RNN với trạng thái ẩn $\mathbf{h}_t\in\mathbb{R}^{n}$:
+\begin{equation}
+  \mathbf{u}_t = \mathbf{W}_{hh}\mathbf{h}_{t-1}
+               + \mathbf{W}_{xh}\mathbf{x}_t + \mathbf{b}_h,
+  \qquad
+  \mathbf{h}_t = \tanh\!\left(\mathbf{u}_t\right).
+  \label{eq:rnn}
+\end{equation}
+Ta tách tiền kích hoạt $\mathbf{u}_t$ ra khỏi trạng thái $\mathbf{h}_t$ để giữ
+đúng quy ước của Mục~\ref{sec:cosotoan}, nơi $\boldsymbol{\delta}$ luôn được định
+nghĩa theo \emph{tiền} kích hoạt. Đặt
+\[
+  \boldsymbol{\delta}_t := \frac{\partial\mathcal{L}_T}{\partial\mathbf{u}_t},
+  \qquad
+  \mathbf{g}_t := \frac{\partial\mathcal{L}_T}{\partial\mathbf{h}_t},
+\]
+với $\mathcal{L}_T$ là mất mát tại bước cuối $T$. Vì $\tanh$ tác động theo từng
+phần tử và $\tanh' = 1 - \tanh^2$, ta có sẵn
+$\tanh'(\mathbf{u}_t) = 1 - \mathbf{h}_t^2$ (bình phương theo từng phần tử) ---
+một tiện lợi tính toán: đạo hàm biểu diễn được qua chính đầu ra.
+
+\subsection{Công thức đệ quy}
+
+\begin{infobox}{Đệ quy BPTT theo tiền kích hoạt}
+Với quy ước ở Mục~\ref{sec:cosotoan},
+\begin{equation}
+  \boldsymbol{\delta}_t
+  = \operatorname{diag}\!\left(1-\mathbf{h}_t^2\right)
+    \mathbf{W}_{hh}^{\top}\,\boldsymbol{\delta}_{t+1},
+  \label{eq:bpttrec}
+\end{equation}
+và do đó
+\begin{equation}
+  \boldsymbol{\delta}_1
+  = \left(\prod_{t=2}^{T}
+      \operatorname{diag}\!\left(1-\mathbf{h}_{t-1}^2\right)\mathbf{W}_{hh}^{\top}
+    \right)\boldsymbol{\delta}_T .
+  \label{eq:bpttprod}
+\end{equation}
+\end{infobox}
+
+\noindent\textit{Chứng minh.}\;
+Từ~\eqref{eq:rnn}, $\mathbf{u}_{t+1}$ phụ thuộc $\mathbf{u}_t$ qua
+$\mathbf{u}_{t+1} = \mathbf{W}_{hh}\tanh(\mathbf{u}_t) + \cdots$, nên
+\[
+  \frac{\partial u_{t+1,m}}{\partial u_{t,i}}
+  = W_{hh,\,mi}\left(1 - h_{t,i}^2\right).
+\]
+Quy tắc dây chuyền cho
+\[
+  \delta_{t,i}
+  = \sum_m \delta_{t+1,m}\,W_{hh,\,mi}\left(1-h_{t,i}^2\right)
+  = \left(1-h_{t,i}^2\right)\left[\mathbf{W}_{hh}^{\top}\boldsymbol{\delta}_{t+1}\right]_i ,
+\]
+đúng dạng~\eqref{eq:bpttrec}. Lặp lại từ $t=1$ tới $T$ cho~\eqref{eq:bpttprod}.
+\hfill$\square$
+
+\begin{notebox}
+Nếu viết đệ quy theo \emph{trạng thái} $\mathbf{h}$ thay vì tiền kích hoạt, thứ
+tự hai thừa số đảo lại:
+$\mathbf{g}_t = \mathbf{W}_{hh}^{\top}\operatorname{diag}\!\left(1-\mathbf{h}_{t+1}^2\right)\mathbf{g}_{t+1}$,
+vì khi đó phi tuyến nằm ở bước $t+1$ chứ không phải bước $t$. Hai cách viết hoàn
+toàn tương đương và cho cùng một chặn; nhầm lẫn giữa chúng là lỗi phổ biến nhất
+khi cài đặt BPTT bằng tay. Quy ước theo $\mathbf{u}$ ở~\eqref{eq:bpttrec} khớp
+chính xác với dạng $\operatorname{diag}\cdot\mathbf{W}^{\top}$
+của~\eqref{eq:deltarec}.
+\end{notebox}
+
+\subsection{Vì sao RNN tệ hơn MLP cùng độ sâu}
+
+Áp dụng tính dưới nhân cho~\eqref{eq:bpttprod}, giống hệt cách làm
+ở~\eqref{eq:governing}:
+\begin{equation}
+  \left\|\boldsymbol{\delta}_1\right\|
+  \;\le\;
+  \left(\sigma_{\max}\!\left(\mathbf{W}_{hh}\right)\cdot\max\tanh'\right)^{T-1}
+  \left\|\boldsymbol{\delta}_T\right\|
+  \;\le\;
+  \sigma_{\max}\!\left(\mathbf{W}_{hh}\right)^{T-1}\left\|\boldsymbol{\delta}_T\right\| .
+  \label{eq:bpttbound}
+\end{equation}
+
+Điểm cấu trúc then chốt nằm ở chỗ: trong~\eqref{eq:bpttprod}, \textbf{cùng một ma
+trận $\mathbf{W}_{hh}$ được nhân lặp lại $T-1$ lần}. Đây là khác biệt cốt yếu so
+với MLP.
+
+Trong một MLP $L$ tầng, tích~\eqref{eq:central} gồm $L$ ma trận \emph{khác nhau}
+$\mathbf{W}^{[1]},\dots,\mathbf{W}^{[L]}$. Các giá trị
+$\sigma_{\max}(\mathbf{W}^{[k]})$ dao động quanh một giá trị trung bình, và tích
+của chúng chịu một hiệu ứng trung bình hoá: một tầng có
+$\sigma_{\max} = 0.9$ có thể được bù bởi một tầng có $\sigma_{\max} = 1.1$. Độ
+lệch tích luỹ tăng theo $\sqrt{L}$ chứ không theo $L$.
+
+Trong RNN, \emph{không có sự trung bình hoá nào cả}. Chặn
+trong~\eqref{eq:bpttbound} là $\sigma_{\max}(\mathbf{W}_{hh})^{T-1}$ --- một cấp
+số nhân thuần tuý với công bội cố định. Nếu
+$\sigma_{\max}(\mathbf{W}_{hh}) = 0.9$, thì sau $T = 100$ bước thời gian hệ số là
+$0.9^{99} \approx 2.95\times10^{-5}$, không có cơ chế nào kéo nó lại. Nói thẳng:
+
+\begin{guidelinebox}{Kết luận so sánh}
+Một RNN duỗi qua $T$ bước thời gian \textbf{tệ hơn ngặt} một MLP $T$ tầng, dù hai
+mạng có cùng chiều sâu tính toán. Chia sẻ trọng số biến tích các ma trận độc lập
+thành luỹ thừa của một ma trận duy nhất, loại bỏ hiệu ứng trung bình hoá và biến
+mọi độ lệch nhỏ của $\sigma_{\max}$ khỏi $1$ thành phân kỳ hoặc triệt tiêu theo
+cấp số nhân~\cite{BengioSimardFrasconi1994,Pascanu2013}.
+\end{guidelinebox}
+
+\subsection{Phân tích phổ: điều gì thực sự quyết định tốc độ suy giảm}
+
+Chặn~\eqref{eq:bpttbound} dùng chuẩn phổ nên là một chặn \emph{trên}. Phân tích
+riêng cho biết hành vi \emph{thực sự}.
+
+Giả sử $\mathbf{W}_{hh}$ chéo hoá được:
+$\mathbf{W}_{hh} = \mathbf{Q}\boldsymbol{\Lambda}\mathbf{Q}^{-1}$ với
+$\boldsymbol{\Lambda} = \operatorname{diag}(\lambda_1,\dots,\lambda_n)$. Khi đó
+\[
+  \mathbf{W}_{hh}^{\top}
+  = \left(\mathbf{Q}^{-1}\right)^{\!\top}\boldsymbol{\Lambda}\,\mathbf{Q}^{\top},
+  \qquad\text{nên}\qquad
+  \left(\mathbf{W}_{hh}^{\top}\right)^{T-1}
+  = \left(\mathbf{Q}^{-1}\right)^{\!\top}\boldsymbol{\Lambda}^{\,T-1}\mathbf{Q}^{\top},
+\]
+vì các thừa số $\mathbf{Q}^{\top}(\mathbf{Q}^{-1})^{\top} = \mathbf{I}$ triệt tiêu
+từng cặp ở giữa. Do $\boldsymbol{\Lambda}^{T-1} =
+\operatorname{diag}(\lambda_1^{T-1},\dots,\lambda_n^{T-1})$, một thành phần
+gradient nằm dọc hướng riêng thứ $i$ bị nhân đúng với $\lambda_i^{\,T-1}$:
+
+\begin{infobox}{Suy giảm theo từng hướng riêng}
+Thành phần gradient dọc hướng riêng ứng với $\lambda_i$ suy giảm theo cấp số nhân
+$\left|\lambda_i\right|^{T-1}$. Mọi hướng có $|\lambda_i| < 1$ tiêu biến; chỉ các
+hướng có $|\lambda_i|\ge1$ còn sống sót qua nhiều bước thời gian. Sau đủ nhiều
+bước, gradient bị \emph{ép} vào không gian con sinh bởi các hướng riêng trội.
+\end{infobox}
+
+\subsubsection{Hai điều kiện cần nói rõ}
+
+\textbf{Thứ nhất, chéo hoá được là một giả thiết.} Không phải mọi ma trận đều
+chéo hoá được; với ma trận khuyết, phải dùng dạng chuẩn Jordan và các khối Jordan
+sinh thêm thừa số đa thức theo $T$. Các thừa số đa thức này không đổi bản chất
+cấp số nhân của kết luận, nhưng làm công thức không còn gọn.
+
+\textbf{Thứ hai, và quan trọng hơn: với $\mathbf{W}_{hh}$ không chuẩn tắc}
+(\emph{non-normal}, tức $\mathbf{W}_{hh}\mathbf{W}_{hh}^{\top}\neq
+\mathbf{W}_{hh}^{\top}\mathbf{W}_{hh}$), bán kính phổ chỉ chi phối hành vi
+\emph{tiệm cận} khi $T\to\infty$. Ở các $T$ hữu hạn, biên độ có thể \emph{tăng
+vọt tạm thời} vượt xa mức mà $\max_i|\lambda_i|$ gợi ý, do các hướng riêng không
+trực giao nhau. Một ma trận có mọi $|\lambda_i| < 1$ vẫn có thể khuếch đại
+gradient hàng chục lần ở những bước trung gian trước khi cuối cùng suy giảm. Đây
+là lý do $\sigma_{\max}$ --- chứ không phải $|\lambda_{\max}|$ --- mới là đại
+lượng dùng để \emph{bảo đảm} an toàn.
+
+Vì vậy phát biểu đúng của Pascanu và cộng sự~\cite{Pascanu2013} là bất đối xứng,
+và cần được trích dẫn đúng như vậy:
+
+\begin{guidelinebox}{Phát biểu chính xác --- chú ý tính bất đối xứng}
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item $\sigma_{\max}(\mathbf{W}_{hh}) < 1$ là điều kiện \textbf{đủ} để gradient
+    triệt tiêu. Đây là một bảo đảm: nếu chuẩn phổ nhỏ hơn $1$, gradient
+    \emph{chắc chắn} tiêu biến theo cấp số nhân.
+  \item $\left|\lambda_{\max}(\mathbf{W}_{hh})\right| > 1$ là điều kiện
+    \textbf{cần nhưng không đủ} để gradient bùng nổ. Bán kính phổ lớn hơn $1$ mở
+    ra khả năng bùng nổ nhưng không bảo đảm nó xảy ra: hướng riêng trội có thể
+    gần như trực giao với gradient thực tế, hoặc thừa số
+    $\operatorname{diag}(1-\mathbf{h}_t^2)\le1$ có thể ghìm tích lại.
+\end{itemize}
+Hệ quả thực hành: dùng $\sigma_{\max}$ để chẩn đoán triệt tiêu, và đừng suy ra
+``an toàn'' chỉ từ việc $|\lambda_{\max}| < 1$.
+\end{guidelinebox}
+
+\subsection{Quên thảm hoạ các phụ thuộc xa}
+
+Hệ quả thực tiễn của~\eqref{eq:bpttbound} là hiện tượng \emph{quên thảm hoạ}
+(catastrophic forgetting) các phụ thuộc dài hạn. Xét câu:
+
+\begin{quote}
+\itshape
+``Tôi lớn lên ở Huế, \ldots{} (năm mươi từ xen giữa) \ldots{} nên tôi nói giọng
+\underline{\phantom{Huế}}.''
+\end{quote}
+
+Để dự đoán từ cuối, mô hình phải dùng thông tin từ bước $t=5$ tại bước $t=60$.
+Gradient của mất mát tại $t=60$ theo tham số ảnh hưởng bước $t=5$ bị nhân với
+$\sigma_{\max}(\mathbf{W}_{hh})^{55}$. Với $\sigma_{\max} = 0.9$, hệ số là
+$0.9^{55}\approx 3.0\times10^{-3}$; với $\sigma_{\max} = 0.7$, là
+$0.7^{55}\approx 3.0\times10^{-9}$.
+
+Điều tinh tế cần nhấn mạnh: mô hình \emph{không phải} không có khả năng biểu diễn
+phụ thuộc đó. Trạng thái ẩn hoàn toàn đủ dung lượng mang thông tin ``Huế'' qua
+$55$ bước. Vấn đề là \textbf{tín hiệu học} không truyền ngược được quãng đường đó,
+nên mô hình không bao giờ \emph{khám phá ra} rằng nó nên mang thông tin ấy. Một
+lần nữa, đây là thất bại tối ưu hoá, không phải thất bại biểu diễn --- đúng như
+sự phân biệt đặt ra ở Mục~\ref{sec:tongquan}.
+
+\subsection{Băng chuyền sai số hằng: suy diễn thay vì khẳng định}
+
+LSTM thay phép cập nhật \emph{nhân} của~\eqref{eq:rnn} bằng một phép cập nhật
+\emph{cộng} trên ô nhớ $\mathbf{c}_t$:
+\begin{equation}
+  \mathbf{c}_t
+  = \mathbf{f}_t \odot \mathbf{c}_{t-1}
+  + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t ,
+  \label{eq:lstmcell}
+\end{equation}
+với $\mathbf{f}_t$ là cổng quên, $\mathbf{i}_t$ cổng vào và
+$\tilde{\mathbf{c}}_t$ ô nhớ ứng viên.
+
+Lấy Jacobian đầy đủ của~\eqref{eq:lstmcell}. Ba cổng đều là hàm của
+$\mathbf{h}_{t-1}$, mà $\mathbf{h}_{t-1} = \mathbf{o}_{t-1}\odot
+\tanh(\mathbf{c}_{t-1})$ lại phụ thuộc $\mathbf{c}_{t-1}$. Vậy nên
+\begin{equation}
+  \frac{\partial\mathbf{c}_t}{\partial\mathbf{c}_{t-1}}
+  = \underbrace{\operatorname{diag}\!\left(\mathbf{f}_t\right)}_{\text{đường trực tiếp}}
+  \;+\;
+  \underbrace{\mathbf{R}_t}_{\text{đường qua các cổng}} ,
+  \label{eq:lstmjac}
+\end{equation}
+trong đó
+\[
+  \mathbf{R}_t
+  = \operatorname{diag}\!\left(\mathbf{c}_{t-1}\right)
+    \frac{\partial\mathbf{f}_t}{\partial\mathbf{c}_{t-1}}
+  + \operatorname{diag}\!\left(\tilde{\mathbf{c}}_t\right)
+    \frac{\partial\mathbf{i}_t}{\partial\mathbf{c}_{t-1}}
+  + \operatorname{diag}\!\left(\mathbf{i}_t\right)
+    \frac{\partial\tilde{\mathbf{c}}_t}{\partial\mathbf{c}_{t-1}} .
+\]
+
+\begin{notebox}
+$\mathbf{R}_t$ \textbf{không} bằng không và không được phép lặng lẽ bỏ đi. Nhiều
+trình bày phổ thông viết $\partial\mathbf{c}_t/\partial\mathbf{c}_{t-1} =
+\operatorname{diag}(\mathbf{f}_t)$ rồi kết luận ngay --- đó là một xấp xỉ, không
+phải một đồng nhất thức. Lập luận đúng phải nêu điều kiện để $\mathbf{R}_t$ nhỏ.
+\end{notebox}
+
+Mỗi số hạng của $\mathbf{R}_t$ chứa một đạo hàm cổng, mà các cổng đều là sigmoid
+hoặc $\tanh$ của một hàm của $\mathbf{c}_{t-1}$ đi qua
+$\tanh(\mathbf{c}_{t-1})$. Khi cổng quên bão hoà mở --- $\mathbf{f}_t\to\mathbf{1}$,
+tức tiền kích hoạt của nó nằm sâu ở nhánh dương --- thì
+$\partial\mathbf{f}_t/\partial\mathbf{c}_{t-1}\to\mathbf{0}$ theo đúng
+\eqref{eq:expdecay}; đồng thời nếu $\mathbf{c}_{t-1}$ đã lớn thì
+$\tanh'(\mathbf{c}_{t-1})\to0$ làm nhỏ cả hai số hạng còn lại. Trong chế độ đó
+$\mathbf{R}_t\approx\mathbf{0}$ và
+\begin{equation}
+  \prod_{t=2}^{T}\frac{\partial\mathbf{c}_t}{\partial\mathbf{c}_{t-1}}
+  \;\approx\;
+  \prod_{t=2}^{T}\operatorname{diag}\!\left(\mathbf{f}_t\right)
+  \;\approx\;
+  \mathbf{I}.
+  \label{eq:cec}
+\end{equation}
+Gradient đi qua $T$ bước thời gian mà \emph{không} chịu suy giảm cấp số nhân. Đây
+là \emph{băng chuyền sai số hằng} (constant error carousel).
+
+\subsubsection{Vì sao RNN thuần không thể làm được điều tương tự}
+
+Đối chiếu với tích tương ứng của RNN thuần,
+$\prod_{t=2}^{T}\operatorname{diag}(1-\mathbf{h}_{t-1}^2)\mathbf{W}_{hh}^{\top}$,
+câu hỏi tự nhiên là: có chọn được tham số nào khiến tích đó bằng $\mathbf{I}$
+không? Câu trả lời là không, và lý do mang tính cấu trúc chứ không phải may rủi.
+
+Đặt $\mathbf{W}_{hh} = \mathbf{I}$ --- lựa chọn thuận lợi nhất có thể. Tích trở
+thành $\prod_t\operatorname{diag}(1-\mathbf{h}_{t-1}^2)$. Nhưng
+$1 - h^2 < 1$ ngặt với mọi $h\neq0$, nên tích này co lại nghiêm ngặt trừ khi
+$\mathbf{h}_t = \mathbf{0}$ với mọi $t$ --- tức mạng không mang thông tin nào cả.
+Ta gặp một lưỡng nan thực sự:
+
+\begin{guidelinebox}{Lưỡng nan của RNN thuần}
+Hoặc trạng thái ẩn khác không --- và khi đó $\operatorname{diag}(1-\mathbf{h}_t^2)$
+co chặt, gradient tiêu biến theo cấp số nhân; hoặc trạng thái ẩn bằng không ---
+và khi đó mạng không biểu diễn gì. \textbf{Không tồn tại} bộ tham số nào cho phép
+RNN thuần vừa mang thông tin vừa truyền gradient không suy giảm qua nhiều bước.
+LSTM thoát khỏi lưỡng nan này bằng cách tạo một đường dẫn \emph{cộng tính} đi
+vòng qua phi tuyến: trong~\eqref{eq:lstmcell}, $\mathbf{c}_{t-1}$ vào thẳng
+$\mathbf{c}_t$ không qua một $\tanh$ nào.
+\end{guidelinebox}
+
+Về mặt nguyên lý, \eqref{eq:cec} và kết nối tắt của ResNet là cùng một thủ pháp
+đặt ở hai trục khác nhau. ResNet biến Jacobian theo \emph{chiều sâu} thành
+$\mathbf{I}+\mathcal{F}'$; LSTM biến Jacobian theo \emph{thời gian} thành
+$\operatorname{diag}(\mathbf{f}_t)+\mathbf{R}_t$ với $\mathbf{f}_t\approx\mathbf{1}$.
+Trong cả hai trường hợp, một số hạng \emph{bậc không} gần bằng $\mathbf{I}$ được
+cài vào tích, và chính số hạng đó gánh gradient đi xa. Xem
+Mục~\ref{sec:tongket}.

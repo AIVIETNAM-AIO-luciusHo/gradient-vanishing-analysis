@@ -1,0 +1,91 @@
+\section{Tổng quan: nghịch lý của chiều sâu}
+\label{sec:tongquan}
+
+Lý thuyết xấp xỉ phổ quát khẳng định một mạng nơ-ron đủ rộng có thể xấp xỉ mọi
+hàm liên tục trên tập compact với sai số tuỳ ý. Bổ sung thêm chiều sâu chỉ làm
+lớp hàm biểu diễn được \emph{giàu hơn}: một mạng $L+1$ tầng luôn có thể mô phỏng
+mạng $L$ tầng bằng cách đặt tầng thừa thành ánh xạ đồng nhất. Vì vậy, theo lý
+thuyết, mạng sâu hơn không bao giờ được phép tệ hơn.
+
+Thực nghiệm những năm 1990--2000 lại cho kết quả ngược lại. Khi tăng số tầng của
+một mạng kết nối đầy đủ dùng hàm kích hoạt sigmoid từ $5$ lên $20$ tầng,
+\emph{sai số huấn luyện} --- chứ không phải sai số kiểm tra --- tăng lên. Đây là
+điểm mấu chốt cần tách bạch ngay từ đầu:
+
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item Nếu sai số huấn luyện thấp nhưng sai số kiểm tra cao, ta gặp vấn đề
+    \textbf{tổng quát hoá} (quá khớp). Cách chữa là chính quy hoá, thêm dữ liệu,
+    giảm dung lượng mô hình.
+  \item Nếu \textbf{sai số huấn luyện} tự nó không giảm được, mô hình thậm chí
+    không học nổi dữ liệu nó đang nhìn thấy. Đây là vấn đề \textbf{tối ưu hoá}.
+    Thêm dữ liệu hay chính quy hoá đều vô ích.
+\end{itemize}
+
+Hiện tượng triệt tiêu gradient thuộc loại thứ hai. Mô hình có đủ dung lượng biểu
+diễn, hàm mục tiêu có tồn tại nghiệm tốt, nhưng thuật toán hạ gradient không
+truyền được tín hiệu học tới các tầng đầu. Nói cách khác, \emph{không gian giả
+thuyết chứa nghiệm nhưng quỹ đạo tối ưu không tới được nó}.
+
+\begin{infobox}{Phát biểu vấn đề trong một câu}
+Trong mạng nơ-ron sâu, gradient của hàm mất mát theo tham số của tầng thứ $l$
+tỉ lệ với một \emph{tích} gồm $L-l$ thừa số ma trận; nếu độ lớn đặc trưng của
+mỗi thừa số lệch khỏi $1$, tích đó suy giảm hoặc bùng nổ theo cấp số nhân, khiến
+các tầng gần đầu vào hoặc không nhận được tín hiệu học, hoặc nhận tín hiệu vô
+nghĩa về mặt số học.
+\end{infobox}
+
+\subsection{Hai chế độ suy biến}
+
+Gọi $\boldsymbol{g}^{[l]} = \partial\mathcal{L}/\partial \mathbf{W}^{[l]}$ là
+gradient tại tầng $l$. Hai chế độ hỏng hóc là đối xứng nhau:
+
+\textbf{Triệt tiêu gradient (vanishing gradient).} $\|\boldsymbol{g}^{[l]}\|
+\to 0$ theo cấp số nhân khi $l$ giảm về phía đầu vào. Biểu hiện thực tế: mất mát
+giảm rất nhanh trong vài epoch đầu rồi đứng yên ở một mức cao; kiểm tra trọng số
+cho thấy các tầng cuối thay đổi rõ rệt còn các tầng đầu gần như giữ nguyên giá
+trị khởi tạo. Đây là trường hợp chính của tài liệu này, và là trường hợp
+\emph{nguy hiểm hơn} vì nó im lặng: không có cảnh báo, không có \texttt{NaN},
+chỉ có một mô hình học kém mà ta dễ quy nhầm cho thiếu dữ liệu.
+
+\textbf{Bùng nổ gradient (exploding gradient).} $\|\boldsymbol{g}^{[l]}\|
+\to \infty$ theo cấp số nhân. Biểu hiện: mất mát nhảy vọt rồi trở thành
+\texttt{NaN} hoặc \texttt{Inf} sau vài bước cập nhật. Chế độ này ồn ào nên dễ
+phát hiện, và có một cách chữa cơ học trực tiếp là cắt ngưỡng gradient
+\emph{(gradient clipping)}~\cite{Pascanu2013}.
+
+Điểm sẽ được chứng minh ở Mục~\ref{sec:nguyennhan} là hai hiện tượng này
+\textbf{không phải hai lỗi khác nhau}. Chúng là cùng một cơ chế --- tích ma trận
+lặp --- quan sát ở hai phía của ngưỡng $1$.
+
+\subsection{Cái bẫy mạng nông}
+
+Hệ quả lịch sử của hiện tượng này là điều có thể gọi là \emph{cái bẫy mạng nông}.
+Khi mạng sâu huấn luyện kém hơn mạng nông, kết luận tự nhiên --- và sai --- là
+``chiều sâu không giúp ích cho bài toán này''. Người thực hành bèn quay lại kiến
+trúc $2$--$3$ tầng, thấy nó hoạt động ổn định hơn, và củng cố niềm tin sai lầm
+đó. Suốt gần hai thập kỷ, cộng đồng đã đọc một \emph{thất bại của thuật toán tối
+ưu} thành một \emph{giới hạn của kiến trúc}.
+
+Chẩn đoán đúng đến từ luận văn của Hochreiter~\cite{Hochreiter1991} và phân tích
+hình thức của Bengio, Simard và Frasconi~\cite{BengioSimardFrasconi1994}: vấn đề
+nằm ở cấu trúc nhân của lan truyền ngược, không nằm ở chiều sâu. Khi nguyên nhân
+được hiểu đúng, các biện pháp khắc phục --- khởi tạo có kiểm soát phương
+sai~\cite{GlorotBengio2010,He2015}, hàm kích hoạt không bão
+hoà~\cite{He2015}, chuẩn hoá theo lô~\cite{IoffeSzegedy2015} và kết nối
+tắt~\cite{He2016ResNet} --- đã cho phép huấn luyện mạng hàng trăm tầng.
+
+\begin{notebox}
+Trước khi kết luận ``mô hình của tôi cần thêm dữ liệu'', hãy kiểm tra sai số
+\emph{huấn luyện}. Nếu chính nó không giảm, dữ liệu không phải là biến số cần
+điều chỉnh.
+\end{notebox}
+
+\subsection{Cấu trúc tài liệu}
+
+Mục~\ref{sec:cosotoan} thiết lập ký hiệu và suy diễn đầy đủ công thức lan truyền
+ngược dạng ma trận. Mục~\ref{sec:nguyennhan} tách vấn đề thành hai nguyên nhân độc
+lập --- độ bão hoà của hàm kích hoạt và bán kính phổ của ma trận trọng số --- rồi
+hợp nhất chúng thành một đại lượng điều khiển duy nhất. Mục~\ref{sec:vidu} kiểm
+chứng bằng một ví dụ số học ba tầng tính tay. Mục~\ref{sec:bptt} mở rộng sang mạng
+hồi quy, nơi vấn đề nghiêm trọng hơn hẳn. Mục~\ref{sec:thucnghiem} đo đạc thực
+nghiệm trên mạng $10$ tầng. Mục~\ref{sec:tongket} tổng kết các nguyên lý khắc phục.

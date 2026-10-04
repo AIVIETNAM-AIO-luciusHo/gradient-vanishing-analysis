@@ -1,0 +1,142 @@
+\section{Tổng kết và các nguyên lý khắc phục}
+\label{sec:tongket}
+
+Phần lớn lập luận của tài liệu xoay quanh một chặn trên, \eqref{eq:governing}:
+\[
+  \left\|\boldsymbol{\delta}^{[l]}\right\| \le c^{\,L-l}\left\|\boldsymbol{\delta}^{[L]}\right\|,
+  \qquad
+  c = \sigma_{\max}(\mathbf{W}) \cdot \max\sigma' .
+\]
+Chặn này chỉ nói một chiều: $c<1$ đủ để gradient co theo hàm mũ, còn $c\ge1$
+không bảo đảm điều gì về giá trị thực (Mục~\ref{sec:thucnghiem} đo được
+$c\approx2.4$--$2.68$ ở điều kiện ReLU + He mà không có bùng nổ). Các kỹ thuật
+thực hành dưới đây có thể đọc như những cách nới hoặc tránh chặn đó --- một góc
+nhìn hữu ích, không phải một định lý phân loại.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}\small
+\begin{tabularx}{\linewidth}{@{}
+  >{\raggedright\arraybackslash\hsize=0.80\hsize}X
+  >{\raggedright\arraybackslash\hsize=1.15\hsize}X
+  >{\raggedright\arraybackslash\hsize=0.85\hsize}X
+  >{\raggedright\arraybackslash\hsize=1.20\hsize}X @{}}
+\toprule
+\rowcolor{rowLavender}
+\textbf{Nguyên nhân} & \textbf{Biểu hiện toán học} &
+\textbf{Kiến trúc bị ảnh hưởng} & \textbf{Nguyên lý khắc phục} \\
+\midrule
+Bão hoà hàm kích~hoạt &
+$\max\sigma' = \tfrac14$ (sigmoid), $\to 0$ khi $|z|$ lớn &
+MLP sâu, CNN đời đầu, RNN dùng $\tanh$ &
+Thay bằng hàm không bão hoà: ReLU, LeakyReLU, GELU $\Rightarrow$ nâng
+$\max\sigma'$ lên $1$ \\
+\addlinespace[3pt]
+Bán kính phổ lệch khỏi $1$ &
+$\textstyle\prod_{k}\sigma_{\max}(\mathbf{W}^{[k]})$ phân kỳ hoặc tiêu biến &
+Mọi mạng sâu; nhạy nhất ở mạng rất~sâu &
+Khởi tạo có kiểm soát phương sai: Xavier, He $\Rightarrow$ đặt
+$\sigma_{\max}(\mathbf{W})\approx1$ \\
+\addlinespace[3pt]
+Tiền kích hoạt trôi vào vùng bão~hoà &
+$\mathbf{z}$ dịch xa $0$ theo chiều sâu, kéo $\sigma'\to0$ &
+Mạng sâu huấn luyện lâu, dịch chuyển hiệp biến~nội &
+Chuẩn hoá: BatchNorm, LayerNorm $\Rightarrow$ tái định tâm $\mathbf{z}$ quanh $0$ \\
+\addlinespace[3pt]
+Cấu trúc tích thuần tuý của Jacobian &
+$\boldsymbol{\delta}^{[l]}$ là tích $L-l$ thừa số, không có số hạng bậc không &
+Mạng rất sâu (trên $50$ tầng) &
+Kết nối tắt: Jacobian thành $\mathbf{I}+\mathbf{F}'$ $\Rightarrow$ tích có
+thêm số hạng $\mathbf{I}$ \\
+\addlinespace[3pt]
+Chia sẻ trọng số theo thời gian &
+Chặn là $\sigma_{\max}(\mathbf{W}_{hh})^{T-1}$, không có trung bình hoá &
+RNN thuần &
+Cổng cộng tính: LSTM, GRU $\Rightarrow$ đường dẫn gần đồng nhất; cắt ngưỡng
+gradient cho chiều bùng~nổ \\
+\bottomrule
+\end{tabularx}
+
+\begin{captionbelowboxaivn}
+Bảng 6: Phân loại nguyên nhân biến đổi gradient và nguyên lý khắc phục tương ứng,
+đọc qua chặn trên $c = \sigma_{\max}(\mathbf{W})\cdot\max\sigma'$.
+\end{captionbelowboxaivn}
+\end{table}
+
+\subsection{Bốn nguyên lý, đọc qua lăng kính của \texorpdfstring{$c$}{c}}
+
+\textbf{ReLU và GELU --- nâng $\max\sigma'$.} Với $\mathrm{ReLU}(z)=\max(0,z)$,
+đạo hàm bằng $1$ trên toàn miền dương thay vì bị chặn bởi $1/4$. Thừa số
+$\max\sigma'$ trong $c$ nhảy từ $0.25$ lên $1$, tức chặn trên không còn ép
+gradient co bốn lần mỗi tầng; hệ số thực còn tuỳ tỉ lệ nơ-ron hoạt động. Giá phải trả là nơ-ron chết ($\sigma'=0$ vĩnh viễn trên nhánh
+âm), điều mà LeakyReLU và GELU khắc phục bằng cách giữ một độ dốc nhỏ khác không.
+Trong thực nghiệm ở Mục~\ref{sec:thucnghiem} (cùng với khởi tạo He), cặp này
+giữ $\log_{10}\rho$ trong khoảng $-0.74$ đến $-0.53$ ở $L\le20$, so với
+$-12.7$ của sigmoid + Xavier ở $L=20$ --- đó là kết quả tại bước khởi tạo, trên
+một kiến trúc cụ thể, không phải một đảm bảo chung.
+
+\textbf{Xavier và He --- điều khiển $\sigma_{\max}(\mathbf{W})$.} Hai sơ đồ khởi
+tạo chọn phương sai trọng số sao cho phương sai tín hiệu được bảo toàn khi đi qua
+tầng. Chúng điều khiển độ lợi \emph{trung bình bình phương}, không phải
+$\sigma_{\max}(\mathbf{W})$: với ma trận $64\times64$, thực nghiệm đo được
+$\sigma_{\max}\approx1.8$--$1.9$ (Xavier) và chặn $c\approx2.4$--$2.68$ (He), tức chặn
+trên $c$ không về $1$ dù gradient thực không bùng nổ. Xavier~\cite{GlorotBengio2010} dung hoà ràng buộc tiến và ngược bằng
+$\operatorname{Var}(w)=2/(n_{\text{in}}+n_{\text{out}})$; He~\cite{He2015} dùng
+$\operatorname{Var}(w)=2/n_{\text{in}}$, với hệ số $2$ bù cho việc ReLU triệt tiêu
+một nửa số nơ-ron. Đây là một trong những can thiệp rẻ nhất: nó không tốn thêm phép tính nào
+sau bước khởi tạo.
+
+\textbf{BatchNorm và LayerNorm --- giữ $\mathbf{z}$ ngoài vùng bão hoà.} Khởi tạo
+chỉ tác động lên phân phối tiền kích hoạt ở bước $0$; khi huấn luyện tiến triển, phân phối của
+$\mathbf{z}$ trôi đi và có thể trượt vào vùng bão hoà, kéo $\max\sigma'$ xuống.
+Chuẩn hoá~\cite{IoffeSzegedy2015} tái định tâm và tái co giãn $\mathbf{z}$ ở mỗi
+bước, giữ nó quanh gốc nơi $\sigma'$ đạt cực đại. Nói cách khác, chuẩn hoá
+giúp \emph{duy trì} trong quá trình huấn luyện điều kiện mà khởi tạo chỉ đặt
+ở bước đầu --- trong phạm vi các giả thiết của nó (lô đủ lớn với BatchNorm,
+tham số co giãn học được không trôi quá xa).
+
+\textbf{Kết nối tắt --- phá vỡ cấu trúc tích.} Ba biện pháp trên đều cố đưa $c$
+về $1$, nhưng vẫn chấp nhận rằng gradient là một \emph{tích}. ResNet~\cite{He2016ResNet}
+tấn công chính cấu trúc đó. Với khối $\mathbf{a}^{[l]} = \mathbf{a}^{[l-1]} +
+\mathcal{F}(\mathbf{a}^{[l-1]})$, Jacobian giữa hai tầng trở thành
+\[
+  \frac{\partial\mathbf{a}^{[l]}}{\partial\mathbf{a}^{[l-1]}}
+  = \mathbf{I} + \mathcal{F}'(\mathbf{a}^{[l-1]}).
+\]
+Tích của các ma trận dạng $\mathbf{I}+\mathcal{F}'$ khai triển thành
+$\mathbf{I} + \sum_k \mathcal{F}'_k + (\text{các số hạng bậc cao})$: luôn có
+một số hạng \emph{bậc không} bằng đúng $\mathbf{I}$. Số hạng này không suy giảm
+theo chiều sâu; tổng vẫn có thể nhỏ hơn nếu các số hạng khác triệt tiêu một
+phần với nó, nhưng khi các nhánh $\mathcal{F}'_k$ nhỏ lúc khởi tạo thì đường tắt
+chiếm ưu thế. Đây là một lý do quan trọng khiến He và cộng sự huấn luyện được
+mạng $152$ tầng, trong khi trong cùng bài báo, mạng thuần tích $34$ tầng có sai
+số huấn luyện \emph{cao hơn} mạng thuần tích $18$ tầng. Về mặt nguyên lý, đây
+đúng là cơ chế mà cổng LSTM dùng trong miền thời gian (Mục~\ref{sec:bptt}), chỉ
+chuyển sang miền chiều sâu.
+
+\begin{guidelinebox}{Thứ tự ưu tiên khi gặp mạng sâu không học được}
+$(1)$ Xác nhận đây là vấn đề tối ưu hoá bằng cách kiểm tra sai số \emph{huấn
+luyện}. $(2)$ In bảng chuẩn gradient theo tầng. $(3)$ Nếu triệt tiêu: đổi sang
+ReLU/GELU và khởi tạo He --- đây là hai thay đổi rẻ nhất, thường đủ. $(4)$ Nếu
+vẫn chưa đủ: thêm chuẩn hoá. $(5)$ Nếu mạng rất sâu: thêm kết nối tắt. $(6)$ Nếu
+bùng nổ: cắt ngưỡng gradient trước, rồi mới xem lại khởi tạo.
+\end{guidelinebox}
+
+\subsection{Liên hệ với tài liệu Module 4}
+
+Các chủ đề trên được phát triển đầy đủ, kèm chứng minh chi tiết và mã nguồn đã
+thực thi, trong sổ tay \texttt{docs/module4-deeplearning-optimization.tex}:
+
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Mục 11} --- Hàm kích hoạt và đạo hàm: họ bão hoà so với họ không
+    bão hoà, softmax và cross-entropy.
+  \item \textbf{Mục 13} --- Triệt tiêu, bùng nổ gradient và khởi tạo trọng số:
+    chứng minh đầy đủ định lý Xavier/Glorot và He/Kaiming.
+  \item \textbf{Mục 14} --- Điều hoà và chuẩn hoá: inverted dropout,
+    BatchNorm, so sánh các sơ đồ chuẩn hoá.
+  \item \textbf{Mục 18} --- Kết nối tắt và dòng chảy gradient: phân tích khai
+    triển $\mathbf{I}+\mathcal{F}'$ và ý nghĩa với mặt mất mát.
+\end{itemize}
+
+Tài liệu hiện tại đóng vai trò dẫn nhập tập trung vào \emph{nguyên nhân}; sổ tay
+Module 4 bao quát toàn bộ không gian giải pháp và lý thuyết tối ưu hoá đi kèm.

@@ -1,0 +1,81 @@
+# Phase 2: training dynamics, plain vs resnet
+
+- torch 2.14.0+cpu | python 3.12.3 | float32 CPU, 6 threads, deterministic algorithms on
+- dataset: CIFAR-10 (train subset 10000 fixed by seed 0, full 10k test) at /home/lucius/.cache/cifar10
+- SGD lr=0.1 momentum=0 wd=0 | batch 128 | 10 epochs | probe batch 512 | width 256
+- seeds [42, 100, 2024] | depths [8, 16, 32] | eps32 = 1.19e-07
+- tables: mean ± std (ddof=1) over seeds, 3 sig. figs; (n=k) = only k seeds finite/not diverged
+self-checks passed | sanity run (plain L=8 relu BN off, 1 epoch) = 1.2s | max resnet recon rel err = 0.00e+00
+[Run 1/72] arch=plain L=8 act=sigmoid BN=off seed=42 | run_time=9.9s | elapsed=0.2min | ETA=11.7min | test_acc=0.100 log10rho=-4.75
+[Run 2/72] arch=plain L=8 act=sigmoid BN=off seed=100 | run_time=9.4s | elapsed=0.3min | ETA=11.3min | test_acc=0.100 log10rho=-4.76
+[Run 3/72] arch=plain L=8 act=sigmoid BN=off seed=2024 | run_time=10.1s | elapsed=0.5min | ETA=11.3min | test_acc=0.100 log10rho=-4.94
+[Run 4/72] arch=resnet L=8 act=sigmoid BN=off seed=42 | run_time=9.3s | elapsed=0.6min | ETA=11.0min | test_acc=0.100 log10rho=-2.46
+[Run 5/72] arch=resnet L=8 act=sigmoid BN=off seed=100 | run_time=9.3s | elapsed=0.8min | ETA=10.7min | test_acc=0.100 log10rho=-2.56
+[Run 6/72] arch=resnet L=8 act=sigmoid BN=off seed=2024 | run_time=10.2s | elapsed=1.0min | ETA=10.7min | test_acc=0.100 log10rho=-2.71
+[Run 7/72] arch=plain L=16 act=sigmoid BN=off seed=42 | run_time=13.4s | elapsed=1.2min | ETA=11.1min | test_acc=0.100 log10rho=-9.71
+[Run 8/72] arch=plain L=16 act=sigmoid BN=off seed=100 | run_time=13.6s | elapsed=1.4min | ETA=11.4min | test_acc=0.100 log10rho=-9.81
+[Run 9/72] arch=plain L=16 act=sigmoid BN=off seed=2024 | run_time=14.5s | elapsed=1.7min | ETA=11.6min | test_acc=0.100 log10rho=-10.00
+[Run 10/72] arch=resnet L=16 act=sigmoid BN=off seed=42 | run_time=14.0s | elapsed=1.9min | ETA=11.8min | test_acc=0.100 log10rho=-4.99
+[Run 11/72] arch=resnet L=16 act=sigmoid BN=off seed=100 | run_time=15.1s | elapsed=2.1min | ETA=11.9min | test_acc=0.100 log10rho=-5.11
+[Run 12/72] arch=resnet L=16 act=sigmoid BN=off seed=2024 | run_time=13.8s | elapsed=2.4min | ETA=11.9min | test_acc=0.100 log10rho=-5.28
+[Run 13/72] arch=plain L=32 act=sigmoid BN=off seed=42 | run_time=23.9s | elapsed=2.8min | ETA=12.6min | test_acc=0.100 log10rho=-20.17
+[Run 14/72] arch=plain L=32 act=sigmoid BN=off seed=100 | run_time=23.5s | elapsed=3.2min | ETA=13.1min | test_acc=0.100 log10rho=-19.99
+[Run 15/72] arch=plain L=32 act=sigmoid BN=off seed=2024 | run_time=22.4s | elapsed=3.5min | ETA=13.5min | test_acc=0.100 log10rho=-20.25
+[Run 16/72] arch=resnet L=32 act=sigmoid BN=off seed=42 | run_time=24.7s | elapsed=4.0min | ETA=13.8min | test_acc=0.100 log10rho=-10.26
+[Run 17/72] arch=resnet L=32 act=sigmoid BN=off seed=100 | run_time=24.5s | elapsed=4.4min | ETA=14.1min | test_acc=0.100 log10rho=-10.31
+[Run 18/72] arch=resnet L=32 act=sigmoid BN=off seed=2024 | run_time=23.5s | elapsed=4.7min | ETA=14.2min | test_acc=0.100 log10rho=-10.45
+[Run 19/72] arch=plain L=8 act=sigmoid BN=on seed=42 | run_time=11.2s | elapsed=4.9min | ETA=13.8min | test_acc=0.285 log10rho=0.20
+[Run 20/72] arch=plain L=8 act=sigmoid BN=on seed=100 | run_time=10.1s | elapsed=5.1min | ETA=13.3min | test_acc=0.257 log10rho=0.12
+[Run 21/72] arch=plain L=8 act=sigmoid BN=on seed=2024 | run_time=10.0s | elapsed=5.3min | ETA=12.8min | test_acc=0.210 log10rho=-0.04
+[Run 22/72] arch=resnet L=8 act=sigmoid BN=on seed=42 | run_time=11.4s | elapsed=5.5min | ETA=12.4min | test_acc=0.303 log10rho=0.05
+[Run 23/72] arch=resnet L=8 act=sigmoid BN=on seed=100 | run_time=10.2s | elapsed=5.6min | ETA=12.0min | test_acc=0.289 log10rho=0.00
+[Run 24/72] arch=resnet L=8 act=sigmoid BN=on seed=2024 | run_time=10.6s | elapsed=5.8min | ETA=11.6min | test_acc=0.204 log10rho=-0.23
+[Run 25/72] arch=plain L=16 act=sigmoid BN=on seed=42 | run_time=16.0s | elapsed=6.1min | ETA=11.4min | test_acc=0.268 log10rho=0.21
+[Run 26/72] arch=plain L=16 act=sigmoid BN=on seed=100 | run_time=14.9s | elapsed=6.3min | ETA=11.2min | test_acc=0.282 log10rho=0.15
+[Run 27/72] arch=plain L=16 act=sigmoid BN=on seed=2024 | run_time=15.9s | elapsed=6.6min | ETA=11.0min | test_acc=0.185 log10rho=-0.06
+[Run 28/72] arch=resnet L=16 act=sigmoid BN=on seed=42 | run_time=15.4s | elapsed=6.8min | ETA=10.8min | test_acc=0.319 log10rho=0.08
+[Run 29/72] arch=resnet L=16 act=sigmoid BN=on seed=100 | run_time=16.8s | elapsed=7.1min | ETA=10.6min | test_acc=0.279 log10rho=-0.04
+[Run 30/72] arch=resnet L=16 act=sigmoid BN=on seed=2024 | run_time=15.4s | elapsed=7.4min | ETA=10.3min | test_acc=0.187 log10rho=-0.13
+[Run 31/72] arch=plain L=32 act=sigmoid BN=on seed=42 | run_time=26.0s | elapsed=7.8min | ETA=10.3min | test_acc=0.190 log10rho=0.22
+[Run 32/72] arch=plain L=32 act=sigmoid BN=on seed=100 | run_time=26.8s | elapsed=8.3min | ETA=10.3min | test_acc=0.224 log10rho=-0.03
+[Run 33/72] arch=plain L=32 act=sigmoid BN=on seed=2024 | run_time=24.8s | elapsed=8.7min | ETA=10.3min | test_acc=0.153 log10rho=-0.07
+[Run 34/72] arch=resnet L=32 act=sigmoid BN=on seed=42 | run_time=28.0s | elapsed=9.1min | ETA=10.2min | test_acc=0.203 log10rho=0.11
+[Run 35/72] arch=resnet L=32 act=sigmoid BN=on seed=100 | run_time=27.4s | elapsed=9.6min | ETA=10.1min | test_acc=0.296 log10rho=-0.12
+[Run 36/72] arch=resnet L=32 act=sigmoid BN=on seed=2024 | run_time=27.2s | elapsed=10.1min | ETA=10.1min | test_acc=0.171 log10rho=-0.12
+[Run 37/72] arch=plain L=8 act=relu BN=off seed=42 | run_time=9.3s | elapsed=10.2min | ETA=9.7min | test_acc=0.338 log10rho=0.31
+[Run 38/72] arch=plain L=8 act=relu BN=off seed=100 | run_time=9.0s | elapsed=10.4min | ETA=9.3min | test_acc=0.362 log10rho=0.38
+[Run 39/72] arch=plain L=8 act=relu BN=off seed=2024 | run_time=10.0s | elapsed=10.5min | ETA=8.9min | test_acc=0.334 log10rho=0.29
+[Run 40/72] arch=resnet L=8 act=relu BN=off seed=42 | run_time=0.3s | elapsed=10.5min | ETA=8.4min | DIVERGED epoch 1 step 3
+[Run 41/72] arch=resnet L=8 act=relu BN=off seed=100 | run_time=0.3s | elapsed=10.5min | ETA=8.0min | DIVERGED epoch 1 step 4
+[Run 42/72] arch=resnet L=8 act=relu BN=off seed=2024 | run_time=0.3s | elapsed=10.5min | ETA=7.5min | DIVERGED epoch 1 step 3
+[Run 43/72] arch=plain L=16 act=relu BN=off seed=42 | run_time=13.1s | elapsed=10.8min | ETA=7.3min | test_acc=0.337 log10rho=0.28
+[Run 44/72] arch=plain L=16 act=relu BN=off seed=100 | run_time=13.1s | elapsed=11.0min | ETA=7.0min | test_acc=0.325 log10rho=0.23
+[Run 45/72] arch=plain L=16 act=relu BN=off seed=2024 | run_time=14.2s | elapsed=11.2min | ETA=6.7min | test_acc=0.301 log10rho=0.41
+[Run 46/72] arch=resnet L=16 act=relu BN=off seed=42 | run_time=0.4s | elapsed=11.2min | ETA=6.3min | DIVERGED epoch 1 step 2
+[Run 47/72] arch=resnet L=16 act=relu BN=off seed=100 | run_time=0.4s | elapsed=11.2min | ETA=6.0min | DIVERGED epoch 1 step 2
+[Run 48/72] arch=resnet L=16 act=relu BN=off seed=2024 | run_time=0.4s | elapsed=11.2min | ETA=5.6min | DIVERGED epoch 1 step 2
+[Run 49/72] arch=plain L=32 act=relu BN=off seed=42 | run_time=0.7s | elapsed=11.2min | ETA=5.3min | DIVERGED epoch 1 step 3
+[Run 50/72] arch=plain L=32 act=relu BN=off seed=100 | run_time=22.7s | elapsed=11.6min | ETA=5.1min | test_acc=0.112 log10rho=-0.34
+[Run 51/72] arch=plain L=32 act=relu BN=off seed=2024 | run_time=21.0s | elapsed=12.0min | ETA=4.9min | test_acc=0.209 log10rho=0.44
+[Run 52/72] arch=resnet L=32 act=relu BN=off seed=42 | run_time=0.7s | elapsed=12.0min | ETA=4.6min | DIVERGED epoch 1 step 1
+[Run 53/72] arch=resnet L=32 act=relu BN=off seed=100 | run_time=0.7s | elapsed=12.0min | ETA=4.3min | DIVERGED epoch 1 step 1
+[Run 54/72] arch=resnet L=32 act=relu BN=off seed=2024 | run_time=0.7s | elapsed=12.0min | ETA=4.0min | DIVERGED epoch 1 step 1
+[Run 55/72] arch=plain L=8 act=relu BN=on seed=42 | run_time=11.5s | elapsed=12.2min | ETA=3.8min | test_acc=0.392 log10rho=0.41
+[Run 56/72] arch=plain L=8 act=relu BN=on seed=100 | run_time=10.7s | elapsed=12.4min | ETA=3.5min | test_acc=0.351 log10rho=0.33
+[Run 57/72] arch=plain L=8 act=relu BN=on seed=2024 | run_time=10.0s | elapsed=12.5min | ETA=3.3min | test_acc=0.310 log10rho=0.26
+[Run 58/72] arch=resnet L=8 act=relu BN=on seed=42 | run_time=11.7s | elapsed=12.7min | ETA=3.1min | test_acc=0.376 log10rho=-0.03
+[Run 59/72] arch=resnet L=8 act=relu BN=on seed=100 | run_time=10.2s | elapsed=12.9min | ETA=2.8min | test_acc=0.310 log10rho=-0.11
+[Run 60/72] arch=resnet L=8 act=relu BN=on seed=2024 | run_time=11.3s | elapsed=13.1min | ETA=2.6min | test_acc=0.262 log10rho=-0.22
+[Run 61/72] arch=plain L=16 act=relu BN=on seed=42 | run_time=16.2s | elapsed=13.4min | ETA=2.4min | test_acc=0.321 log10rho=0.15
+[Run 62/72] arch=plain L=16 act=relu BN=on seed=100 | run_time=15.1s | elapsed=13.6min | ETA=2.2min | test_acc=0.301 log10rho=-0.06
+[Run 63/72] arch=plain L=16 act=relu BN=on seed=2024 | run_time=16.9s | elapsed=13.9min | ETA=2.0min | test_acc=0.264 log10rho=-0.12
+[Run 64/72] arch=resnet L=16 act=relu BN=on seed=42 | run_time=15.2s | elapsed=14.2min | ETA=1.8min | test_acc=0.357 log10rho=-0.16
+[Run 65/72] arch=resnet L=16 act=relu BN=on seed=100 | run_time=16.9s | elapsed=14.4min | ETA=1.6min | test_acc=0.262 log10rho=-0.35
+[Run 66/72] arch=resnet L=16 act=relu BN=on seed=2024 | run_time=15.8s | elapsed=14.7min | ETA=1.3min | test_acc=0.227 log10rho=-0.24
+[Run 67/72] arch=plain L=32 act=relu BN=on seed=42 | run_time=25.7s | elapsed=15.1min | ETA=1.1min | test_acc=0.242 log10rho=-1.10
+[Run 68/72] arch=plain L=32 act=relu BN=on seed=100 | run_time=25.6s | elapsed=15.6min | ETA=0.9min | test_acc=0.225 log10rho=-1.39
+[Run 69/72] arch=plain L=32 act=relu BN=on seed=2024 | run_time=24.6s | elapsed=16.0min | ETA=0.7min | test_acc=0.222 log10rho=-1.27
+[Run 70/72] arch=resnet L=32 act=relu BN=on seed=42 | run_time=26.8s | elapsed=16.4min | ETA=0.5min | test_acc=0.385 log10rho=-0.19
+[Run 71/72] arch=resnet L=32 act=relu BN=on seed=100 | run_time=27.0s | elapsed=16.9min | ETA=0.2min | test_acc=0.299 log10rho=-0.50
+[Run 72/72] arch=resnet L=32 act=relu BN=on seed=2024 | run_time=26.6s | elapsed=17.3min | ETA=0.0min | test_acc=0.275 log10rho=-0.34
+done in 17.4 min
