@@ -81,7 +81,7 @@ trừ $\mathbf{W}^{[1]} - \eta\,\mathbf{g}^{[1]}$, cùng với
 
 \subsection{Kết quả}
 
-Hai bảng dưới chép nguyên từ \texttt{results.md} do \texttt{experiment.py} sinh
+Bảng~\ref{tab:grad-init} và Bảng~\ref{tab:freeze} chép nguyên từ \texttt{results.md} do \texttt{experiment.py} sinh
 ra (PyTorch 2.14.0+cpu, CPython 3.12.3): trung bình $\pm$ độ lệch chuẩn mẫu
 (\texttt{ddof=1}) trên $5$ hạt giống, ba chữ số có nghĩa. Chạy lại script cho
 kết quả trùng từng byte.
@@ -89,6 +89,12 @@ kết quả trùng từng byte.
 \begin{table}[H]
 \centering
 \small
+\begin{captionaboveboxaivn}
+\captab{Chặn $c$ đo được và chuẩn gradient tại bước khởi tạo của MLP rộng $64$
+($N=256$ mẫu, $L\in\{5,10,20\}$), trung bình $\pm$ độ lệch chuẩn trên $5$ hạt
+giống. Với sigmoid + Xavier, $\log_{10}\rho$ giảm gần tuyến tính theo $L$; với
+ReLU + He, nó nằm gần $0$.\label{tab:grad-init}}
+\end{captionaboveboxaivn}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{@{}rccccc@{}}
 \toprule
@@ -106,15 +112,17 @@ $10$ & $2.59\pm0.0179$ & $1.4\pm0.571$  & $9.55\pm9.71$ & $0.302\pm0.25$   & $-0
 $20$ & $2.68\pm0.0141$ & $4.08\pm7.49$  & $28.7\pm57.6$ & $0.462\pm0.581$  & $-0.53\pm0.409$ \\
 \bottomrule
 \end{tabular}
-\begin{captionbelowboxaivn}
-Bảng 3: Chặn $c$ đo được và chuẩn gradient tại bước khởi tạo, trung bình $\pm$ độ
-lệch chuẩn trên $5$ hạt giống.
-\end{captionbelowboxaivn}
 \end{table}
 
 \begin{table}[H]
 \centering
 \small
+\begin{captionaboveboxaivn}
+\captab{Tiêu chí đóng băng tầng $1$ với $\eta = 0.1$ (cùng thiết lập với
+Bảng~\ref{tab:grad-init}). Cột cuối đếm số hạt giống mà \texttt{torch.equal} xác
+nhận toàn bộ cập nhật bị làm tròn mất: đóng băng hoàn toàn chỉ xảy ra ở sigmoid +
+Xavier, $L=20$, ở $5/5$ hạt giống.\label{tab:freeze}}
+\end{captionaboveboxaivn}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{@{}rcccc@{}}
 \toprule
@@ -132,10 +140,6 @@ $10$ & $0.0123\pm0.00505$ & $(1.03\pm0.424)\times10^{5}$ & $0\pm0$ & $0/5$ \\
 $20$ & $0.0361\pm0.0663$  & $(3.02\pm5.56)\times10^{5}$  & $0\pm0$ & $0/5$ \\
 \bottomrule
 \end{tabular}
-\begin{captionbelowboxaivn}
-Bảng 4: Tiêu chí đóng băng tầng $1$ với $\eta = 0.1$. Cột cuối đếm số hạt giống
-mà \texttt{torch.equal} xác nhận toàn bộ cập nhật bị làm tròn mất.
-\end{captionbelowboxaivn}
 \end{table}
 
 \subsection{Phân tích}
@@ -143,13 +147,15 @@ mà \texttt{torch.equal} xác nhận toàn bộ cập nhật bị làm tròn m�
 \textbf{Điều kiện A (sigmoid + Xavier).} $\log_{10}\rho$ giảm gần tuyến tính theo
 độ sâu: $-2.78$, $-6.19$, $-12.7$ ở $L = 5, 10, 20$. Quy về mỗi tầng,
 $10^{\log_{10}\rho/(L-1)}$ cho $0.202$, $0.205$, $0.215$ --- một hệ số suy giảm
-gần như không đổi, tức suy giảm theo hàm mũ đúng như chặn dự báo khi $c<1$.
+gần như không đổi, tức suy giảm theo hàm mũ đúng như chặn dự báo khi $c<1$
+(xem Hình~\ref{fig:gradnorm} ở Phụ lục~\ref{app:phu-luc-a}).
 
 Tuy nhiên chặn đo được là $c \approx 0.45$--$0.48$, \emph{không phải} $0.25$:
 chuẩn phổ trung bình của các ma trận Xavier trong mạng, $c/0.25$, là khoảng
 $1.8$--$1.9$ chứ không bằng $1$.
 Hệ số suy giảm thực ($\approx0.2$) còn nhỏ hơn $c$ khoảng hai lần; khoảng cách
-đó chính là hai yếu tố (a) bão hoà và (b) lệch hướng kỳ dị mà $c$ bỏ qua. Nói
+đó phù hợp với hai yếu tố (a) bão hoà và (b) lệch hướng kỳ dị mà $c$ bỏ qua (thí nghiệm này không
+tách riêng đóng góp của từng yếu tố). Nói
 cách khác, ở đây chặn đúng nhưng lỏng. (Vì
 $\mathbf{g}^{[l]}$ còn chứa thừa số kích hoạt $\mathbf{a}^{[l-1]}$, phép so sánh
 giữa $\rho$ và $c^{\,L-1}$ chỉ có ý nghĩa ở bậc độ lớn.)
@@ -180,40 +186,82 @@ giống chi phối. Khởi tạo đúng giữ \emph{bậc độ lớn trung bìn
 được từng lần khởi tạo; đó là lý do cần báo cáo trung bình $\pm$ độ lệch chuẩn
 thay vì một con số.
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=0.80\linewidth, height=6.0cm,
-    xlabel={Độ sâu $L$},
-    ylabel={$\log_{10}\rho$ (trung bình $\pm$ độ lệch chuẩn)},
-    xtick={5,10,20}, xmin=3, xmax=22,
-    ymin=-14, ymax=1,
-    axis lines=left,
-    legend style={font=\scriptsize, at={(0.03,0.03)}, anchor=south west, draw=none, fill=none},
-    tick label style={font=\scriptsize},
-    label style={font=\scriptsize},
-    grid=major, grid style={gray!20},
-]
-\addplot[thick, aivnGreen, mark=*, mark size=1.6pt,
-         error bars/.cd, y dir=both, y explicit] coordinates {
-  (5,-2.78) +- (0,0.358) (10,-6.19) +- (0,0.373) (20,-12.7) +- (0,0.29)
-};
-\addlegendentry{A: sigmoid + Xavier}
-\addplot[thick, brandIndigo, mark=square*, mark size=1.5pt,
-         error bars/.cd, y dir=both, y explicit] coordinates {
-  (5,-0.74) +- (0,0.135) (10,-0.638) +- (0,0.358) (20,-0.53) +- (0,0.409)
-};
-\addlegendentry{B: ReLU + He}
-\end{axis}
-\end{tikzpicture}
+\subsection{Phổ Jacobian đầu-cuối tại khởi tạo}
+\label{subsec:jacobian-exp}
 
-\begin{figurecaptionmodern}
-\capfig{$\log_{10}\rho$ theo độ sâu, số liệu của Bảng~3. Điều kiện A giảm gần
-tuyến tính theo $L$ (suy giảm hàm mũ, $\approx0.2$ mỗi tầng); điều kiện B nằm
-gần $0$ nhưng thanh sai số rộng dần theo $L$.\label{fig:gradnorm}}
-\end{figurecaptionmodern}
-\end{figure}
+Mục này đo phổ của $\mathbf{J}=\partial\mathbf{z}^{[L-1]}/\partial\mathbf{z}^{[1]}$ trong
+\eqref{eq:Jdef} (Mục~\ref{subsec:dyniso}) trên đúng các mạng, khởi tạo và hạt giống của
+thí nghiệm trước. Do tầng ra chỉ có một nơ-ron, $\mathbf{J}$ được tính trên chồng
+tầng ẩn $64\times64$ ($L-2$ thừa số), không tính tới đầu ra vô hướng. Với mỗi hạt giống ta lấy
+$16$ mẫu đầu tiên của $\mathbf{x}$, tính $\mathbf{J}$ bằng \texttt{autograd} rồi lấy
+các giá trị kỳ dị; mạng được khởi tạo ở \texttt{float32} (trọng số trùng với
+Bảng~\ref{tab:grad-init}) và chỉ phần đo phổ chuyển sang \texttt{float64}. Hạng số học là số
+$\sigma_i>64\,\epsilon_{64}\sigma_{\max}$; $\log_{10}\kappa$ chỉ được báo khi hạng đủ $64$,
+nếu không là n/a vì nhiễu làm tròn làm $\sigma_{\min}$ vô nghĩa. $\log_{10}c_J$ là chặn
+bảo thủ $\prod_{k=2}^{L-1}\|\mathbf{W}^{[k]}\|_2\max_i|\sigma'(z^{[k-1]}_i)|$ với $\sigma'$ đo thực.
+Kết quả ở Bảng~\ref{tab:jacobian-spectrum}, chép từ \texttt{results\_jacobian.md}
+(mỗi hạt giống lấy trung bình các $\log_{10}$ trên $16$ mẫu, rồi trung bình $\pm$ độ lệch
+chuẩn mẫu trên $5$ hạt giống).
+
+\begin{table}[H]
+\centering
+\small
+\begin{captionaboveboxaivn}
+\captab{Phổ của Jacobian đầu-cuối $\mathbf{J}=\partial\mathbf{z}^{[L-1]}/\partial\mathbf{z}^{[1]}$ (chồng tầng ẩn
+$64\times64$, tầng ra loại bỏ) của MLP rộng $64$ tại bước khởi tạo, $L\in\{5,10,20\}$, trung
+bình $\pm$ độ lệch chuẩn trên $5$ hạt giống ($16$ mẫu mỗi hạt giống). Với sigmoid + Xavier cả
+phổ co lại theo $L$; với ReLU + He, $\mathrm{RMS}(\sigma)$ gần $1$ nhưng hạng thiếu nhiều, nên phổ
+không đồng đều.\label{tab:jacobian-spectrum}}
+\end{captionaboveboxaivn}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}rccccc@{}}
+\toprule
+$L$ & $\log_{10}\sigma_{\max}(\mathbf{J})$ & $\log_{10}\mathrm{RMS}(\sigma)$ & Hạng số học $/64$
+  & $\log_{10}\kappa(\mathbf{J})$ & $\log_{10}c_J$ \\
+\midrule
+\multicolumn{6}{@{}l}{\textit{A: sigmoid + Xavier}} \\
+$5$  & $-1.45\pm0.0329$ & $-1.93\pm0.0165$ & $64\pm0$ & $5.72\pm0.811$ & $-0.937\pm0.0238$ \\
+$10$ & $-4.39\pm0.0528$ & $-5.05\pm0.024$  & $64\pm0$ & $11.6\pm0.781$ & $-2.52\pm0.0389$ \\
+$20$ & $-10.6\pm0.0672$ & $-11.3\pm0.0475$ & $61\pm0$ & n/a$^{\ast}$   & $-5.63\pm0.0249$ \\
+\midrule
+\multicolumn{6}{@{}l}{\textit{B: ReLU + He}} \\
+$5$  & $0.557\pm0.0219$ & $-0.00502\pm0.0252$ & $28.9\pm0.872$ & n/a$^{\ast}$ & $1.32\pm0.0237$ \\
+$10$ & $0.688\pm0.0872$ & $-0.0286\pm0.102$   & $26.6\pm2.56$  & n/a$^{\ast}$ & $3.5\pm0.039$ \\
+$20$ & $0.676\pm0.129$  & $-0.122\pm0.124$    & $23.6\pm1.09$  & n/a$^{\ast}$ & $7.92\pm0.0249$ \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\begin{minipage}{\linewidth}\scriptsize
+$^{\ast}$\,n/a: ở $0/80$ cặp (hạt giống, mẫu) $\mathbf{J}$ có đủ hạng số học, nên $\kappa$ không được báo.
+\end{minipage}
+\end{table}
+
+\textbf{Xu hướng.} Ở sigmoid + Xavier, \emph{toàn bộ} phổ co lại theo độ sâu: cả
+$\log_{10}\sigma_{\max}$ lẫn $\log_{10}\mathrm{RMS}(\sigma)$ giảm cỡ nhiều bậc độ lớn từ $L=5$ đến
+$L=20$, cùng chiều với $\log_{10}\rho$ ở Bảng~\ref{tab:grad-init}. Condition number
+tăng từ cỡ $10^{5.7}$ lên cỡ $10^{11.6}$, và ở $L=20$ hạng số học chỉ còn $61$ trên $64$:
+một số giá trị kỳ dị đã rơi xuống dưới ngưỡng $64\,\epsilon_{64}\sigma_{\max}$ nên $\kappa$ lớn hơn
+$1/(64\,\epsilon_{64})\approx7\times10^{13}$ và không còn đo được. Ở ReLU + He,
+$\log_{10}\mathrm{RMS}(\sigma)$ nằm gần $0$ ở mọi độ sâu, nhưng hạng số học chỉ khoảng
+$24$--$29$ trên $64$ và $\log_{10}\sigma_{\max}$ dương.
+
+\textbf{Cơ chế.} Với sigmoid, mỗi thừa số $\mathbf{W}^{[k]}\mathbf{D}^{[k-1]}$ có $\mathbf{D}$ bị
+chặn bởi $1/4$ nên mọi giá trị kỳ dị cùng co lại, không chỉ giá trị lớn nhất. Với ReLU,
+$\mathbf{D}^{[k]}$ có phần tử bằng $0$ (nơ-ron không hoạt động), mà
+$\operatorname{rank}(\mathbf{J})\le\operatorname{rank}(\mathbf{D}^{[1]})$, nên một phần các giá trị
+kỳ dị bằng $0$ về mặt số học, và hạng giảm dần khi $L$ tăng, phù hợp với việc mỗi $\mathbf{D}^{[k]}$ thêm một
+ràng buộc hạng. Vì trung bình bình phương của cả $64$ giá trị kỳ dị vẫn gần $1$, phần còn
+lại phải lớn hơn $1$ để bù, nên $\sigma_{\max}>1$. Một ma trận thiếu hạng không thể có mọi $\sigma_i\approx1$, nên mạng He ở đây
+không đạt dynamical isometry dù $\mathrm{RMS}(\sigma)\approx1$. Số lượng nơ-ron không hoạt động cụ thể không được đo ở đây, nên
+không suy diễn thêm.
+
+\textbf{Liên hệ với chặn $c$.} $\log_{10}c_J$ luôn lớn hơn $\log_{10}\sigma_{\max}(\mathbf{J})$
+(kiểm tra bằng \texttt{assert} trên mọi mẫu), và khoảng cách rộng dần theo $L$ ở cả hai
+điều kiện. Ở ReLU + He, $c_J$ tăng theo $L$ rất nhanh trong khi $\sigma_{\max}(\mathbf{J})$ gần như không
+đổi theo $L$, một minh hoạ trực tiếp cho việc $c>1$ chỉ cho phép bùng nổ chứ không
+bảo đảm nó. Kết quả này đo ở bước khởi tạo, trên $5$ hạt giống và $16$ mẫu mỗi hạt giống
+(các mẫu cùng chung một bộ trọng số nên không độc lập), và không nói gì về lúc huấn luyện.
 
 \begin{guidelinebox}{Cách đọc một bảng chuẩn gradient khi gỡ lỗi mô hình thật}
 Khi một mô hình sâu không giảm được mất mát huấn luyện, hãy in chuẩn gradient
@@ -233,7 +281,7 @@ theo tầng, trên vài hạt giống, \emph{trước khi} chỉnh tốc độ h
 \end{itemize}
 Để biết tầng đầu có thực sự đứng yên hay không, đừng so chuẩn gradient với
 epsilon máy; hãy tính $r = \eta\|\mathbf{g}^{[1]}\|_F/\|\mathbf{W}^{[1]}\|_F$ và
-đếm số phần tử không đổi sau một bước cập nhật, như Bảng~4.
+đếm số phần tử không đổi sau một bước cập nhật, như Bảng~\ref{tab:freeze}.
 \end{guidelinebox}
 
 \begin{notebox}
@@ -276,28 +324,61 @@ Một lần chạy được coi là \emph{phân kỳ} khi mất mát huấn luy�
 lần chạy đó dừng ngay.
 
 \paragraph{Phép đo.} Một \emph{probe batch} cố định gồm $512$ ảnh huấn luyện
-được đưa qua một lượt forward/backward riêng (chế độ train, không có bước tối
+được đưa qua một lượt forward/\allowbreak backward riêng (chế độ train, không có bước tối
 ưu, buffer BatchNorm được khôi phục) tại epoch $0$ (khởi tạo) và sau mỗi epoch.
-Với $\mathbf{g}_{\text{stem}} = \partial\mathcal{L}/\partial\mathbf{W}_{\text{stem}}$
-và $\mathbf{g}_{\text{head}} = \partial\mathcal{L}/\partial\mathbf{W}_{\text{head}}$
-trên probe batch,
+Gọi $\mathbf{g}_{\text{stem}}$ và $\mathbf{g}_{\text{head}}$ là gradient của $\mathcal{L}$
+theo trọng số của stem và của head trên probe batch:
 \[
+  \mathbf{g}_{\text{stem}} = \frac{\partial\mathcal{L}}{\partial\mathbf{W}_{\text{stem}}},
+  \qquad
+  \mathbf{g}_{\text{head}} = \frac{\partial\mathcal{L}}{\partial\mathbf{W}_{\text{head}}},
+  \qquad
   \text{stem gnorm} \;=\; \left\|\mathbf{g}_{\text{stem}}\right\|_F,
   \qquad
   \rho \;=\; \frac{\left\|\mathbf{g}_{\text{stem}}\right\|_F}{\left\|\mathbf{g}_{\text{head}}\right\|_F}.
 \]
+\paragraph{Chỉ số chính và chỉ số phụ.} Ta gọi
+\[
+  \mathrm{TD} \;:=\; \log_{10}\frac{\left\|\mathbf{g}_{\text{first}}\right\|_F}{\left\|\mathbf{g}_{\text{last}}\right\|_F}
+\]
+là \emph{tổng suy giảm toàn mạng} (Total Degradation), chỉ số chính của tài liệu. TD đồng
+nhất với $\log_{10}\rho$ ở mọi bảng đã dùng, với $\mathbf{g}_{\text{first}}$ là gradient của
+tầng đầu (tầng $1$ ở thí nghiệm khởi tạo, stem ở thí nghiệm huấn luyện) và
+$\mathbf{g}_{\text{last}}$ của tầng cuối (tầng $L$, head); tên TD chỉ để gọi cho gọn, không có số
+nào của các bảng trước bị đổi. $\mathrm{TD}<0$: gradient suy giảm về phía tầng đầu;
+$\mathrm{TD}>0$: khuếch đại. Chỉ số phụ \emph{decay\_slope} là hệ số góc của hồi quy bình
+phương tối thiểu của $\log_{10}\left\|\mathbf{g}^{[l]}\right\|_F$ theo chỉ số tầng $l$, tính trên mọi
+$L+2$ phần tử (stem, các khối, head) của thí nghiệm huấn luyện; đơn vị là số bậc độ lớn mỗi tầng,
+kèm $R^{2}$ của chính hồi quy đó. $\text{decay\_slope}>0$ nghĩa là gradient lớn dần về phía head
+(nhỏ dần về phía tầng đầu, tức vanishing). Phần tử bằng $0$ hoặc không hữu hạn sẽ bị loại khỏi
+hồi quy; dữ liệu hiện có không có phần tử nào như vậy. Cả hai được tính từ
+\texttt{results\_training.json} bằng \texttt{analysis\_decay.py}, không huấn luyện thêm.
+
 Ngoài ra, ở mỗi bước huấn luyện ta ghi cập nhật tương đối thực sự của stem,
 $r = \|\mathbf{W}_{t+1}-\mathbf{W}_t\|_F/\|\mathbf{W}_t\|_F$, và báo cáo trung vị
 theo epoch dưới dạng $r/\epsilon_{32}$. Mọi số liệu dưới đây là trung bình
 $\pm$ độ lệch chuẩn mẫu (\texttt{ddof=1}) trên $3$ hạt giống, lấy từ
 \texttt{results\_training.json}.
 
-% Tables in this document are numbered by hand; the counter is set only so
-% that \ref{tab:training-dynamics} resolves to the printed number.
-\setcounter{table}{4}
+Kết quả được trình bày theo thứ tự từ xu hướng đến cơ chế.
+Bảng~\ref{tab:training-dynamics} tóm tắt độ chính xác, $\log_{10}\rho$ và stem
+gnorm ở $L=32$ với ReLU + Kaiming; Hình~\ref{fig:heatmap-plain-resnet} cho thấy
+trường gradient theo tầng và theo epoch của sigmoid; Hình~\ref{fig:gradflow-residual}
+cho thấy $\log_{10}\rho$ theo epoch ở cả ba độ sâu. Ba đoạn (a)--(c) sau đó giải
+thích cơ chế đằng sau từng xu hướng. Bảng~\ref{tab:total-degradation}, đặt sau phần (d), bổ sung
+TD, decay\_slope và $R^{2}$ ở $L=32$ cho cả bốn biến thể.
+
 \begin{table}[htbp]
 \centering
 \footnotesize
+\begin{captionaboveboxaivn}
+\captab{Động lực học ở $L=32$, ReLU + Kaiming, có và không có BatchNorm (MLP rộng
+$256$, CIFAR-10 $10{,}000$ ảnh, SGD $\eta=0.1$, $10$ epoch, probe batch $512$): độ
+chính xác test, $\log_{10}\rho$ và stem gnorm, trung bình $\pm$ độ lệch chuẩn trên
+$3$ hạt giống. In đậm: độ chính xác test trung bình cao hơn, từ epoch $1$, chỉ khi cả
+hai cùng không phân kỳ. Với BatchNorm, ResNet vượt PlainNet ở $L=32$ từ epoch
+$1$.\label{tab:training-dynamics}}
+\end{captionaboveboxaivn}
 \renewcommand{\arraystretch}{1.2}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}rcccccc@{}}
@@ -309,9 +390,9 @@ Epoch & PlainNet & ResNet & PlainNet & ResNet & PlainNet & ResNet \\
 \midrule
 \multicolumn{7}{@{}l}{\textit{ReLU + Kaiming + BatchNorm}} \\
 $0$  & $10.6\pm0.962$ & $10.0\pm0.052$ & $2.81\pm0.0832$   & $0.348\pm0.101$   & $626\pm59.4$          & $45.0\pm1.39$ \\
-$1$  & $13.1\pm0.649$ & $18.3\pm4.03$  & $-1.30\pm0.0419$  & $-0.914\pm0.0523$ & $0.0735\pm0.00931$    & $0.701\pm0.0672$ \\
-$5$  & $17.7\pm0.396$ & $25.8\pm4.31$  & $-1.36\pm0.154$   & $-0.569\pm0.145$  & $0.0531\pm0.00477$    & $0.993\pm0.401$ \\
-$10$ & $22.9\pm1.09$  & $32.0\pm5.77$  & $-1.26\pm0.145$   & $-0.342\pm0.156$  & $0.0469\pm0.0076$     & $1.07\pm0.221$ \\
+$1$  & $13.1\pm0.649$ & $\mathbf{18.3\pm4.03}$  & $-1.30\pm0.0419$  & $-0.914\pm0.0523$ & $0.0735\pm0.00931$    & $0.701\pm0.0672$ \\
+$5$  & $17.7\pm0.396$ & $\mathbf{25.8\pm4.31}$  & $-1.36\pm0.154$   & $-0.569\pm0.145$  & $0.0531\pm0.00477$    & $0.993\pm0.401$ \\
+$10$ & $22.9\pm1.09$  & $\mathbf{32.0\pm5.77}$  & $-1.26\pm0.145$   & $-0.342\pm0.156$  & $0.0469\pm0.0076$     & $1.07\pm0.221$ \\
 \midrule
 \multicolumn{7}{@{}l}{\textit{ReLU + Kaiming, không BatchNorm}} \\
 $0$  & $9.94\pm0.0954$ & $9.58\pm0.37$ & $-0.133\pm0.191$ & $-0.737\pm0.0462$ & $2.95\pm0.9$ & $(2.32\pm0.244)\times10^{3}$ \\
@@ -331,20 +412,14 @@ BN ở cả ba độ sâu, $1$ PlainNet ReLU không BN, $L=32$); không lần ch
 BatchNorm hoặc sigmoid bị phân kỳ.
 \end{minipage}
 
-\begin{captionbelowboxaivn}
-\refstepcounter{table}\label{tab:training-dynamics}%
-Bảng~\thetable: Động lực học ở $L=32$, ReLU + Kaiming, có và không có BatchNorm:
-độ chính xác test, $\log_{10}\rho$ và stem gnorm trên probe batch, trung bình
-$\pm$ độ lệch chuẩn trên $3$ hạt giống.
-\end{captionbelowboxaivn}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\linewidth]{figures/heatmap_plain_vs_resnet.png}
+\includegraphics[width=0.82\linewidth]{figures/heatmap_plain_vs_resnet.png}
 \begin{figurecaptionmodern}
-\capfig{Heatmap của $\log_{10}\left\|\mathbf{g}^{[l]}\right\|_F$ (trung bình trên
-$3$ hạt giống, thang màu viridis chung cho hai panel, từ khoảng $-20$ đến $0$)
+\capfig{Heatmap của $\log_{10}\left\|\mathbf{g}^{[l]}\right\|_F$ (MLP rộng $256$,
+CIFAR-10 $10{,}000$ ảnh, SGD $\eta=0.1$; trung bình trên $3$ hạt giống, thang màu viridis chung cho hai panel, từ khoảng $-20$ đến $0$)
 ở $L=32$, Sigmoid + Xavier, không BatchNorm. Trục hoành: epoch ($0$ = khởi tạo);
 trục tung: chỉ số tầng tuyến tính ($0$ = stem, $33$ = head). Trái: PlainNet;
 phải: ResNet. Kết luận: residual connection kéo stem từ khoảng $10^{-20.5}$
@@ -357,18 +432,19 @@ và không epoch nào thay đổi được điều đó.\label{fig:heatmap-plain
 \centering
 \includegraphics[width=\linewidth]{figures/gradient_flow_residual.png}
 \begin{figurecaptionmodern}
-\capfig{$\log_{10}\rho$ theo epoch ($0$ = khởi tạo), không BatchNorm; đường liền
+\capfig{$\log_{10}\rho$ theo epoch ($0$ = khởi tạo) của MLP rộng $256$, CIFAR-10
+$10{,}000$ ảnh, SGD $\eta=0.1$, không BatchNorm; đường liền
 là PlainNet, đường đứt là ResNet, mỗi màu một độ sâu $L\in\{8,16,32\}$, thanh
 sai số là độ lệch chuẩn trên các hạt giống còn hữu hạn. Trái: ReLU + Kaiming;
 phải: Sigmoid + Xavier. Kết luận: với sigmoid, mọi đường gần như nằm ngang suốt
-$10$ epoch, nên huấn luyện không tự sửa được vanishing gradient; với ReLU,
+$10$ epoch, tức trong thiết lập này huấn luyện không làm thay đổi đáng kể vanishing gradient; với ReLU,
 ResNet không BN chỉ có điểm epoch $0$ vì mọi lần chạy đều phân kỳ ở epoch
 $1$.\label{fig:gradflow-residual}}
 \end{figurecaptionmodern}
 \end{figure}
 
 \paragraph{(a) Sigmoid ResNet với activation sau phép cộng vẫn vanishing.}
-\emph{Cơ chế.} Đặt $\mathbf{s}_l = \mathbf{x}_l + F(\mathbf{x}_l)$. Jacobian
+\emph{Cơ chế} (diễn giải lý thuyết). Đặt $\mathbf{s}_l = \mathbf{x}_l + F(\mathbf{x}_l)$. Jacobian
 của một khối là
 \[
   \frac{\partial\mathbf{x}_{l+1}}{\partial\mathbf{x}_l}
@@ -397,12 +473,12 @@ tương đối của stem ResNet chỉ còn $r/\epsilon_{32}\approx0.8\text{--}2
 Độ chính xác test của cả $18$ lần chạy Sigmoid không BN ($6$ cấu hình) ở epoch $10$ đều là
 $10.0\%$, tức mức đoán ngẫu nhiên.
 
-\emph{Kết luận.} Residual connection chia đôi số mũ của vanishing gradient
-nhưng không xoá nó; muốn identity path thực sự là đường cao tốc, activation
-bão hoà phải nằm \emph{trong} nhánh $F$, không đặt sau phép cộng.
+\emph{Kết luận.} Residual connection xấp xỉ chia đôi số mũ của vanishing gradient
+nhưng không xoá nó. Điều này gợi ý rằng muốn identity path thực sự là đường cao tốc, activation
+bão hoà nên nằm \emph{trong} nhánh $F$, không đặt sau phép cộng; thiết kế đó không được thí nghiệm ở đây.
 
 \paragraph{(b) ReLU ResNet không BatchNorm phân kỳ ngay epoch đầu.}
-\emph{Cơ chế.} Không có BatchNorm, nhánh $F$ với khởi tạo Kaiming giữ phương sai
+\emph{Cơ chế} (diễn giải lý thuyết). Không có BatchNorm, nhánh $F$ với khởi tạo Kaiming giữ phương sai
 của đầu vào thay vì triệt tiêu nó, và phép cộng của identity path cộng dồn
 phương sai qua từng khối:
 \[
@@ -426,19 +502,19 @@ phương sai. PlainNet cùng cấu hình giữ ở $2.4$--$4.3$. Mất mát trê
 lúc khởi tạo của ResNet là $9.90$, $41.8$, $1480$, so với $\ln 10\approx2.30$ của
 một bộ phân loại ngẫu nhiên. Stem gnorm ở $L=32$ là $(2.32\pm0.244)\times10^{3}$
 (Bảng~\ref{tab:training-dynamics}), nên bước SGD đầu tiên có
-$\eta\|\mathbf{g}_{\text{stem}}\|_F\approx232$. Kết quả là $9/9$ lần chạy phân kỳ
+$\eta\|\mathbf{g}_{\text{stem}}\|_F\approx232$. Cả $9/9$ lần chạy phân kỳ
 ở epoch $1$, và mạng càng sâu thì càng sớm: bước $3$--$4$ ($L=8$), bước $2$
 ($L=16$), bước $1$ ($L=32$). Trong Hình~\ref{fig:gradflow-residual} (trái), các
 đường ResNet chỉ còn điểm epoch $0$. PlainNet ReLU không BN cũng không hoàn toàn
 an toàn: $1/3$ hạt giống ở $L=32$ phân kỳ (epoch $1$, bước $3$).
 
-\emph{Kết luận.} Identity path chuyển phép \emph{nhân} của mạng thuần thành phép
-\emph{cộng} của phương sai; không có cơ chế chuẩn hoá, phép cộng đó tự nó cộng
-dồn thành bùng nổ.
+\emph{Kết luận.} Số liệu phù hợp với cách đọc rằng identity path chuyển phép \emph{nhân} của
+mạng thuần thành phép \emph{cộng} của phương sai, và không có cơ chế chuẩn hoá thì phép cộng đó cộng
+dồn thành bùng nổ. Phương sai forward không được đo, nên đây là diễn giải.
 
-\paragraph{(c) Ở $L=32$, BatchNorm + identity path giữ $\rho$ gần $1$ và
-chuyển thành độ chính xác.}
-\emph{Cơ chế.} BatchNorm ở cuối nhánh $F$ ép
+\paragraph{(c) Ở $L=32$, BatchNorm + identity path đi cùng $\rho$ gần $1$ và
+độ chính xác cao hơn.}
+\emph{Cơ chế} (diễn giải lý thuyết). BatchNorm ở cuối nhánh $F$ ép
 $\operatorname{Var}(F(\mathbf{x}_l))\approx1$ bất kể $l$ (với $\gamma=1$,
 $\beta=0$ lúc khởi tạo), nên phương trình ở (b) đổi từ nhân sang cộng:
 \[
@@ -454,6 +530,7 @@ stem phải qua $L+1=33$ cặp BN--ReLU nối tiếp và không có gì giữ ch
 nhau.
 
 \emph{Bằng chứng (Bảng~\ref{tab:training-dynamics}, phần trên).}
+{\emergencystretch=3em
 \begin{itemize}[leftmargin=*, itemsep=1pt]
   \item \textbf{$\rho$ của ResNet ở gần $1$.} Qua $11$ lần đo, $\log_{10}\rho$
     trung bình của ResNet nằm trong $[-0.914,\ 0.348]$, tức $\rho\in[0.122,\ 2.23]$.
@@ -463,20 +540,106 @@ nhau.
   \item \textbf{Stem của ResNet được cập nhật mạnh hơn nhiều.} Ở epoch $10$,
     stem gnorm là $1.07\pm0.221$ (ResNet) so với $0.0469\pm0.0076$ (PlainNet),
     và cập nhật tương đối $r/\epsilon_{32}$ là $(5.08\pm0.46)\times10^{4}$ so với
-    $423\pm76.4$, tức stem của ResNet học nhanh hơn khoảng $120$ lần.
+    $423\pm76.4$, tức cập nhật tương đối của stem ResNet lớn hơn khoảng $120$ lần.
   \item \textbf{Độ chính xác tương ứng.} Test acc ở epoch $10$ là
     $32.0\pm5.77\%$ (ResNet) so với $22.9\pm1.09\%$ (PlainNet). Theo từng hạt
     giống, ResNet đạt $38.5$, $29.9$, $27.5\%$ và PlainNet đạt $24.2$, $22.5$,
     $22.2\%$, nên mọi hạt giống ResNet đều vượt mọi hạt giống PlainNet.
-\end{itemize}
+\end{itemize}}
 Lợi thế này chỉ xuất hiện ở độ sâu lớn. Ở $L=8$ và $L=16$, PlainNet + BN nhỉnh
 hơn ($35.1\pm4.10$ so với $31.6\pm5.72\%$; $29.5\pm2.88$ so với $28.2\pm6.75\%$).
 Độ chính xác của PlainNet giảm đơn điệu theo $L$ ($35.1\to29.5\to22.9\%$), còn
 ResNet gần như giữ nguyên ($31.6\to28.2\to32.0\%$).
 
-\emph{Kết luận.} BatchNorm chặn sự cộng dồn phương sai, identity path giữ đường
-gradient về stem; cần \emph{cả hai} thì stem mới học được ở $L=32$, và đó là
-nguồn của khoảng cách $9$ điểm phần trăm.
+\emph{Kết luận.} Số liệu phù hợp với cách đọc rằng BatchNorm chặn sự cộng dồn phương sai và identity
+path giữ đường gradient về stem. Trong lưới $2\times2$ ở $L=32$ (có/không BN, có/không identity path),
+chỉ tổ hợp có \emph{cả hai} cho độ chính xác test cao nhất (ResNet không BN phân kỳ, PlainNet không BN thấp
+hơn), và tổ hợp đó đi cùng khoảng cách $9$ điểm phần trăm so với PlainNet + BN. Đây là mô tả, không phải phân tích trung gian hay kiểm
+định thống kê; $3$ hạt giống trong một cấu hình không độc lập.
+
+\paragraph{(d) Khởi tạo chỉ đảm bảo ở $t=0$, và BatchNorm ở mạng thuần sâu không miễn nhiễm.}
+\label{par:khoitao-bn}
+\emph{Cơ chế} (diễn giải lý thuyết, không đo trực tiếp). Xavier và He chỉ cân bằng
+phương sai tại bước khởi tạo, dưới các giả thiết (G1)--(G4) của Mục~\ref{sec:nguyennhan};
+huấn luyện làm phân phối trọng số trôi đi nên các giả thiết đó không còn đảm bảo.
+BatchNorm không thay đổi điều này: lý thuyết trường trung bình của
+Yang và cộng sự~\cite{Yang2019MeanField} dự báo rằng ở mạng BatchNorm thuần không có kết nối tắt,
+gradient tại khởi tạo tăng theo hàm mũ của độ sâu.
+
+\emph{Bằng chứng} (số trong \texttt{results\_training.md}). PlainNet ReLU + Kaiming + BN
+có $\log_{10}\rho$ tại epoch $0$ là $0.862\pm0.0482$, $1.56\pm0.0611$, $2.81\pm0.0832$ ở
+$L=8,16,32$, tức $\rho>1$ ngay từ khởi tạo và $\log_{10}\rho$ tăng gần tuyến tính theo $L$;
+stem gnorm tương ứng là $8.22$, $36.8$, $626$. Cùng mạng ReLU + Kaiming \emph{không} BN
+có $\log_{10}\rho$ tại epoch $0$ là $-0.0372$, $0.0626$, $-0.133$, gần $0$ (He hoạt động
+đúng ở $t=0$), và stem gnorm ở $L=32$ chỉ là $2.95\pm0.9$ so với $626\pm59.4$ khi có BN
+(Bảng~\ref{tab:training-dynamics}). Sau epoch $1$, $\log_{10}\rho$ của PlainNet + BN
+là $0.0232\pm0.00475$, $-0.297\pm0.0768$, $-1.3\pm0.0419$; sau epoch $10$ là
+$0.332\pm0.0716$, $-0.0106\pm0.144$, $-1.26\pm0.145$. Đối chiếu: ResNet + BN giữ
+$\log_{10}\rho$ trong $[-0.914,\ 0.348]$ ở cả ba độ sâu tại các epoch $0,1,5,10$.
+Một quan sát khác: Sigmoid + Xavier + BN PlainNet có $\log_{10}\rho$ tại epoch $0$ là
+$-0.16$, $-0.0732$, $-0.0524$, tức không thấy bùng nổ; đây chỉ là một quan sát, không rút
+kết luận nào về lý thuyết của~\cite{Yang2019MeanField} cho sigmoid.
+
+\emph{Kết luận} (có phạm vi). Trong thiết lập này (MLP rộng $256$, CIFAR-10 $10{,}000$ ảnh,
+SGD $\eta=0.1$, $3$ hạt giống), ReLU + Kaiming + BN không có kết nối tắt cho gradient ở
+stem lớn hơn hẳn ở head tại khởi tạo, và mức lệch tăng theo độ sâu; điều này phù hợp với dự báo
+của~\cite{Yang2019MeanField}. Số liệu không đủ để nói BatchNorm nói chung gây bùng nổ, và
+tài liệu này không so sánh với khởi tạo trực giao.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{captionaboveboxaivn}
+\captab{Tổng suy giảm toàn mạng $\mathrm{TD}$ (đồng nhất với $\log_{10}\rho$), decay\_slope (bậc độ lớn
+mỗi tầng; dương: gradient lớn dần về phía head) và $R^{2}$ của hồi quy đó, ở $L=32$, epoch $0$ và
+$10$ (MLP rộng $256$, CIFAR-10 $10{,}000$ ảnh, SGD $\eta=0.1$, probe batch $512$; trung bình
+$\pm$ độ lệch chuẩn trên $3$ hạt giống). Ở Sigmoid + Xavier không BN, $R^{2}$ gần $1$; ở các ô còn lại
+$R^{2}$ thấp, trừ PlainNet ReLU + BN ở epoch $0$.\label{tab:total-degradation}}
+\end{captionaboveboxaivn}
+\renewcommand{\arraystretch}{1.2}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{@{}rcccccc@{}}
+\toprule
+& \multicolumn{2}{c}{TD} & \multicolumn{2}{c}{decay\_slope} & \multicolumn{2}{c}{$R^{2}$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(l){6-7}
+Epoch & PlainNet & ResNet & PlainNet & ResNet & PlainNet & ResNet \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{ReLU + Kaiming + BatchNorm}} \\
+$0$ & $2.81\pm0.0832$ & $0.348\pm0.101$ & $-0.0792\pm0.00161$ & $-0.0239\pm0.000603$ & $0.978\pm0.00236$ & $0.402\pm0.0194$ \\
+$10$ & $-1.26\pm0.145$ & $-0.342\pm0.156$ & $0.00797\pm0.00121$ & $-0.00728\pm0.00231$ & $0.196\pm0.0597$ & $0.127\pm0.0757$ \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{ReLU + Kaiming, không BatchNorm}} \\
+$0$ & $-0.133\pm0.191$ & $-0.737\pm0.0462$ & $0.0111\pm0.00588$ & $0.0293\pm0.00214$ & $0.576\pm0.203$ & $0.934\pm0.015$ \\
+$10$ & $0.0497\pm0.545^{\dagger}$ & n/a$^{\ast}$ & $0.000233\pm0.00769^{\dagger}$ & n/a$^{\ast}$ & $0.38\pm0.199^{\dagger}$ & n/a$^{\ast}$ \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{Sigmoid + Xavier + BatchNorm}} \\
+$0$ & $-0.0524\pm0.0885$ & $-0.242\pm0.078$ & $-0.00678\pm0.000826$ & $-0.00732\pm0.00112$ & $0.177\pm0.0408$ & $0.131\pm0.0178$ \\
+$10$ & $0.0398\pm0.157$ & $-0.0447\pm0.131$ & $-0.00385\pm0.00171$ & $-0.0073\pm0.00171$ & $0.186\pm0.163$ & $0.324\pm0.173$ \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{Sigmoid + Xavier, không BatchNorm}} \\
+$0$ & $-20.5\pm0.101$ & $-10.8\pm0.103$ & $0.627\pm0.00313$ & $0.325\pm0.000483$ & $1\pm3.31\times10^{-5}$ & $0.998\pm0.000174$ \\
+$10$ & $-20.1\pm0.132$ & $-10.3\pm0.0984$ & $0.624\pm0.00149$ & $0.325\pm0.00241$ & $1\pm8.52\times10^{-5}$ & $0.997\pm0.000608$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\smallskip
+\begin{minipage}{\linewidth}\scriptsize
+$^{\ast}$\,n/a: $3/3$ hạt giống ResNet phân kỳ ngay ở epoch $1$.
+$^{\dagger}$\,Trung bình trên $2$ hạt giống (hạt giống $42$ của PlainNet phân kỳ ở epoch $1$).
+\end{minipage}
+\end{table}
+
+\paragraph{Đọc decay\_slope cùng $R^{2}$.} Ở Sigmoid + Xavier không BN, $R^{2}\approx1$ ở cả hai
+epoch (Bảng~\ref{tab:total-degradation}): $\log_{10}\left\|\mathbf{g}\right\|$ gần tuyến tính theo tầng,
+và decay\_slope của ResNet xấp xỉ một nửa của PlainNet ($0.325$ so với $0.627$ ở epoch $0$),
+cùng chiều với TD ở phần (a). Ở các biến thể có BatchNorm, $R^{2}$ thấp: gradient không đơn điệu
+theo tầng, nên một đường thẳng không mô tả được hình dạng của nó. Ví dụ, ở PlainNet ReLU + BN, hạt
+giống $42$, epoch $10$, chuẩn gradient gần như phẳng ở các tầng giữa trong khi stem thấp hơn hẳn
+tầng kế cận và head cao hơn hẳn các tầng giữa. Ngoại lệ là PlainNet ReLU + BN ở epoch $0$, nơi
+$R^{2}=0.978$ và decay\_slope âm, tức gradient lớn dần về phía stem. Vì vậy decay\_slope chỉ là xu hướng tuyến
+tính tổng quát, và khi $R^{2}$ thấp thì độ lớn của nó không nên đọc như một tốc độ suy giảm; nó không thay
+thế TD, vốn chỉ so tầng đầu với tầng cuối.
 
 \begin{notebox}
 Số liệu chỉ có $3$ hạt giống và $10$ epoch trên $10{,}000$ ảnh, nên các khoảng
@@ -487,3 +650,41 @@ $\log_{10}\rho$ trung bình của cả hai ở trong $[-0.41,\ 0.09]$ suốt qu�
 BatchNorm một mình đã xoá vanishing gradient của sigmoid về mặt chuẩn gradient,
 nhưng không đưa độ chính xác lên ngang ReLU + BN.
 \end{notebox}
+
+\subsection{Hạn chế của nghiên cứu}
+\label{subsec:han-che}
+
+\begin{enumerate}[leftmargin=*, itemsep=2pt, label=(\arabic*)]
+  \item \textbf{Tối ưu hoá.} Chỉ dùng SGD thuần (momentum $0$, weight decay $0$) với tốc độ học
+    $\eta=0.1$ \emph{cố định} cho mọi cấu hình. Các kết luận về đóng băng và phân kỳ vì thế phụ thuộc
+    $\eta$ (chẳng hạn $r=\eta\|\mathbf{g}\|/\|\mathbf{W}\|$), và ảnh hưởng của kiến trúc chưa được tách khỏi ảnh
+    hưởng của $\eta$. Khảo sát quét tốc độ học (ví dụ $\eta\in\{0.01,\,0.03,\,0.1\}$) là hướng mở
+    ngoài phạm vi của tài liệu; không được thực hiện và không có số liệu.
+  \item \textbf{Số hạt giống.} $5$ hạt giống ở thí nghiệm khởi tạo, $3$ hạt giống ở thí nghiệm huấn
+    luyện; các khoảng $\pm$ khá rộng, và $10/72$ lần chạy phân kỳ nên một số ô chỉ có $n<3$.
+  \item \textbf{Phạm vi thiết lập.} $10$ epoch, tập con $10{,}000$ ảnh của CIFAR-10, MLP rộng $256$
+    (thí nghiệm huấn luyện) hoặc $64$ (thí nghiệm khởi tạo), độ sâu $L\in\{8,16,32\}$ và $\{5,10,20\}$.
+    Không có kết luận nào cho CNN, Transformer, tập dữ liệu đầy đủ hay độ sâu khác.
+  \item \textbf{Phép đo.} Gradient được đo trên một probe batch $512$ ảnh, tại epoch $0$ và sau mỗi
+    epoch (các bảng chỉ ghi epoch $0,1,5,10$). Phương sai forward không được đo trực tiếp, nên các giải
+    thích cơ chế ở (a)--(d) là diễn giải, không phải kết quả đo.
+  \item \textbf{Phương pháp chưa thử.} Không có thí nghiệm với Adam/AdamW và với khởi tạo trực giao.
+  \item \textbf{Thống kê.} Chỉ báo trung bình $\pm$ độ lệch chuẩn trên số hạt giống nhỏ, không kiểm định
+    thống kê; các nhận xét về hai đại lượng đi cùng nhau là mô tả, không phải kiểm định.
+\end{enumerate}
+
+\paragraph{Adam: thảo luận lý thuyết, không phải quan sát.} Tài liệu không chạy Adam, nên không có quan
+sát nào kèm theo đoạn này. Cập nhật Adam cho toạ độ $i$ của tham số là
+\[
+  \Delta\theta_i \;=\; -\,\eta\,\frac{\hat m_i}{\sqrt{\hat v_i}+\epsilon_{\mathrm{A}}},
+  \qquad \epsilon_{\mathrm{A}}=10^{-8},
+\]
+với $\hat m_i$ và $\hat v_i$ là ước lượng moment bậc một và bậc hai của gradient đã hiệu chỉnh độ lệch.
+Phép so sánh với $\epsilon_{\mathrm{A}}$ phải làm \emph{từng phần tử}: với mỗi toạ độ $i$, so $\sqrt{\hat v_i}$ với
+$\epsilon_{\mathrm{A}}$; không dùng chuẩn Frobenius của gradient để so với $\epsilon_{\mathrm{A}}$, vì cập nhật Adam
+là theo từng toạ độ. Khi $\sqrt{\hat v_i}\gg\epsilon_{\mathrm{A}}$, bước xấp xỉ $\eta\,\hat m_i/\sqrt{\hat v_i}$ và gần như không
+phụ thuộc độ lớn của gradient. Khi $\sqrt{\hat v_i}$ cỡ hoặc nhỏ hơn $\epsilon_{\mathrm{A}}$, thì $\epsilon_{\mathrm{A}}$ chiếm ưu
+thế ở mẫu số và bước co lại theo $\hat m_i/\epsilon_{\mathrm{A}}$. Do đó, nếu gradient của một số toạ độ ở tầng
+đầu có độ lớn cỡ $\epsilon_{\mathrm{A}}$ hoặc nhỏ hơn, thì bước cập nhật của các toạ độ đó co lại theo cách vừa
+nêu; còn ở các toạ độ có $\sqrt{\hat v_i}\gg\epsilon_{\mathrm{A}}$, độ lớn bước không còn bị tỉ lệ theo độ lớn gradient. Đoạn này
+không khẳng định Adam tốt hơn hay kém hơn SGD trong thiết lập của tài liệu.

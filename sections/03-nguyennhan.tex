@@ -46,10 +46,15 @@ hệ số không quá $1/4$. Nếu $\left\|\mathbf{W}^{[k]}\right\|_2 \approx 1$
 gradient co lại theo $4^{-L}$.
 
 \medskip
-\noindent Bảng suy giảm dưới đây cho thấy tốc độ của hiện tượng:
+\noindent Bảng~\ref{tab:suy-giam-luy-thua} cho thấy tốc độ của hiện tượng:
 
 \begin{table}[H]
 \centering
+\begin{captionaboveboxaivn}
+\captab{Đại lượng $0.25^{L}$ theo số tầng $L$. Với $L=10$ giá trị chỉ còn khoảng
+$8$ lần epsilon máy \texttt{float32}; với $L=20$ nó đã dưới epsilon
+máy.\label{tab:suy-giam-luy-thua}}
+\end{captionaboveboxaivn}
 \begin{tabular}{@{}crl@{}}
 \toprule
 \rowcolor{rowLavender}
@@ -62,7 +67,6 @@ $20$ & $9.094947\times10^{-13}$ & dưới ngưỡng phân giải của \texttt{f
 $50$ & $7.888609\times10^{-31}$ & bằng không về mặt số học \\
 \bottomrule
 \end{tabular}
-
 \end{table}
 
 Con số ở dòng $L=10$ đáng được nhấn mạnh. Epsilon máy của \texttt{float32} là
@@ -83,7 +87,8 @@ Với $\tanh$, ta có $\tanh'(z) = 1 - \tanh^2(z)$, và
 thực chất: tại chế độ tuyến tính quanh gốc, $\tanh$ bảo toàn biên độ gradient
 trong khi sigmoid làm co lại bốn lần mỗi tầng.
 
-Tuy nhiên cải thiện này chỉ tồn tại \emph{tại một điểm duy nhất}. Với $|z|\ge 2$
+Hình~\ref{fig:sat} vẽ $\sigma$, $\tanh$ và đạo hàm của chúng, với vùng bão hoà tô
+xám. Tuy nhiên cải thiện này chỉ tồn tại \emph{tại một điểm duy nhất}. Với $|z|\ge 2$
 đã có $\tanh'(z) \le 0.072$, nhỏ hơn cả chặn $1/4$ của sigmoid. Trong một mạng
 thật, các tiền kích hoạt phân tán trên một khoảng chứ không tập trung tại $0$, nên
 giá trị $\tanh'$ \emph{trung bình} luôn nhỏ hơn $1$ ngặt. Tích của $L$ số nhỏ hơn
@@ -91,8 +96,9 @@ $1$ ngặt vẫn hội tụ về $0$ theo cấp số nhân --- chỉ với cơ s
 
 \begin{notebox}
 $\tanh$ dời ngưỡng chiều sâu mà vấn đề trở nên nghiêm trọng, chứ không thay đổi
-bản chất cấp số nhân của nó. Đây là lý do việc chuyển từ sigmoid sang $\tanh$
-giúp huấn luyện mạng $10$ tầng nhưng vẫn thất bại ở mạng $50$ tầng.
+bản chất cấp số nhân của nó. Điều này gợi ý vì sao việc chuyển từ sigmoid sang $\tanh$
+có thể giúp huấn luyện mạng $10$ tầng nhưng vẫn thất bại ở mạng $50$ tầng; tài liệu không thí
+nghiệm với $\tanh$.
 \end{notebox}
 
 \begin{figure}[H]
@@ -333,7 +339,7 @@ không độc lập --- chúng bị ràng buộc ngược chiều qua chính tha
 \end{notebox}
 
 Kết luận này có giá trị kiến tạo: nó \emph{loại trừ} toàn bộ một họ giải pháp và
-chỉ ra chính xác ba lối thoát còn lại, mỗi lối phá vỡ một mắt xích của thế kẹt:
+chỉ ra ba lối thoát chính, mỗi lối phá vỡ một mắt xích của thế kẹt:
 
 \begin{enumerate}[leftmargin=*, itemsep=2pt]
   \item \textbf{Đổi hàm kích hoạt} --- nâng $\max\sigma'$ lên $1$ mà không đụng
@@ -348,9 +354,11 @@ chỉ ra chính xác ba lối thoát còn lại, mỗi lối phá vỡ một m�
     nối tắt~\cite{He2016ResNet}.
 \end{enumerate}
 
-Ba lối thoát này chính là ba cột đầu của bảng tổng kết ở Mục~\ref{sec:tongket};
-chúng không phải một danh sách mẹo rời rạc mà là một phân loại vét cạn suy ra từ
-\eqref{eq:governing} và~\eqref{eq:varrec}.
+Ba lối thoát chính này là ba cột đầu của bảng tổng kết ở Mục~\ref{sec:tongket};
+chúng không phải một danh sách mẹo rời rạc mà là các cách phá vỡ thế kẹt suy ra từ
+\eqref{eq:governing} và~\eqref{eq:varrec}. Danh sách này không vét cạn: khởi tạo
+trực giao theo hướng Dynamical Isometry là một đường tiếp cận nữa, xem
+Mục~\ref{subsec:dyniso} ngay sau đây.
 
 \begin{notebox}
 \textbf{Triệt tiêu và bùng nổ không phải hai lỗi khác nhau.} Chúng là cùng một
@@ -360,3 +368,140 @@ $c = 1$. Mọi biện pháp khắc phục ở Mục~\ref{sec:tongket} đều là
 $\sigma_{\max}(\mathbf{W})$, hoặc giữ $\mathbf{z}$ ngoài vùng bão hoà, hoặc thay
 đổi cấu trúc Jacobian để nó không còn là tích thuần tuý.
 \end{notebox}
+
+\subsection{Dynamical Isometry: phổ của toàn bộ Jacobian}
+\label{subsec:dyniso}
+{\emergencystretch=3em
+
+Chặn $c$ ở~\eqref{eq:governing} chỉ nhìn vào độ lớn \emph{tối đa} của từng thừa số.
+Để biết \emph{mọi hướng} của tín hiệu lỗi có được truyền về hay không, ta cần phổ
+của cả tích Jacobian, không chỉ chuẩn phổ của nó.
+
+\paragraph{Định nghĩa.} Giả sử các tầng ẩn $1,\dots,L-1$ cùng rộng $n$ và $L\ge3$.
+Theo~\eqref{eq:jacforward}, Jacobian đầu-cuối của chồng tầng ẩn là
+\begin{equation}
+  \mathbf{J}
+  \;:=\; \frac{\partial\mathbf{z}^{[L-1]}}{\partial\mathbf{z}^{[1]}}
+  \;=\; \mathbf{W}^{[L-1]}\mathbf{D}^{[L-2]}\cdots\mathbf{W}^{[2]}\mathbf{D}^{[1]}
+  \;\in\;\mathbb{R}^{n\times n},
+  \qquad
+  \mathbf{D}^{[k]} := \operatorname{diag}\!\left(\sigma'\!\left(\mathbf{z}^{[k]}\right)\right),
+  \label{eq:Jdef}
+\end{equation}
+gồm $L-2$ thừa số $\mathbf{W}^{[k]}\mathbf{D}^{[k-1]}$. $\mathbf{J}$ cố ý
+\emph{loại tầng ra}: nếu tầng ra có một nơ-ron (như ở Mục~\ref{sec:thucnghiem}),
+Jacobian tới đầu ra là một ma trận $1\times n$ có hạng không quá $1$, phổ của nó
+suy biến và không mang thông tin.
+
+\begin{infobox}{Mệnh đề --- tín hiệu lỗi đi qua Jacobian đầu-cuối}
+Với $\mathbf{J}$ như ở~\eqref{eq:Jdef} và mọi vector $\boldsymbol{\delta}^{[L-1]}\in\mathbb{R}^{n}$,
+\begin{equation}
+  \boldsymbol{\delta}^{[1]}
+  = \mathbf{D}^{[1]}\left(\mathbf{W}^{[2]}\right)^{\!\top}\mathbf{D}^{[2]}\left(\mathbf{W}^{[3]}\right)^{\!\top}
+    \cdots\mathbf{D}^{[L-2]}\left(\mathbf{W}^{[L-1]}\right)^{\!\top}\boldsymbol{\delta}^{[L-1]}
+  = \mathbf{J}^{\!\top}\boldsymbol{\delta}^{[L-1]},
+  \label{eq:deltaJ}
+\end{equation}
+và
+\begin{equation}
+  \sigma_{\min}(\mathbf{J})\left\|\boldsymbol{\delta}^{[L-1]}\right\|
+  \;\le\;\left\|\boldsymbol{\delta}^{[1]}\right\|
+  \;\le\;\sigma_{\max}(\mathbf{J})\left\|\boldsymbol{\delta}^{[L-1]}\right\| ,
+  \label{eq:twoside}
+\end{equation}
+trong đó cả hai dấu bằng đều đạt được với $\boldsymbol{\delta}^{[L-1]}$ chọn
+thích hợp.
+\end{infobox}
+
+\noindent\textit{Chứng minh.}\;
+\emph{Bước 1 (quy nạp theo tầng).} Với $1\le l\le L-2$ đặt
+\[
+  \mathbf{P}_l := \mathbf{D}^{[l]}\left(\mathbf{W}^{[l+1]}\right)^{\!\top}\mathbf{D}^{[l+1]}\cdots
+  \mathbf{D}^{[L-2]}\left(\mathbf{W}^{[L-1]}\right)^{\!\top}.
+\]
+Ta chứng minh $\boldsymbol{\delta}^{[l]}=\mathbf{P}_l\boldsymbol{\delta}^{[L-1]}$.
+Với $l=L-2$, \eqref{eq:deltarec} cho
+$\boldsymbol{\delta}^{[L-2]}=\mathbf{D}^{[L-2]}(\mathbf{W}^{[L-1]})^{\top}\boldsymbol{\delta}^{[L-1]}
+=\mathbf{P}_{L-2}\boldsymbol{\delta}^{[L-1]}$. Nếu đúng với $l$ thì áp dụng
+\eqref{eq:deltarec} cho tầng $l-1$:
+\[
+  \boldsymbol{\delta}^{[l-1]}
+  = \mathbf{D}^{[l-1]}\left(\mathbf{W}^{[l]}\right)^{\!\top}\boldsymbol{\delta}^{[l]}
+  = \mathbf{D}^{[l-1]}\left(\mathbf{W}^{[l]}\right)^{\!\top}\mathbf{P}_l\boldsymbol{\delta}^{[L-1]}
+  = \mathbf{P}_{l-1}\boldsymbol{\delta}^{[L-1]} .
+\]
+Sau $L-2$ lần áp dụng ta được $\boldsymbol{\delta}^{[1]}=\mathbf{P}_1\boldsymbol{\delta}^{[L-1]}$.
+
+\emph{Bước 2 (nhận ra $\mathbf{J}^{\top}$).} $\mathbf{D}^{[k]}$ đối xứng và chuyển vị đảo
+thứ tự của một tích, nên
+\[
+  \mathbf{J}^{\!\top}
+  = \left(\mathbf{W}^{[L-1]}\mathbf{D}^{[L-2]}\cdots\mathbf{W}^{[2]}\mathbf{D}^{[1]}\right)^{\!\top}
+  = \mathbf{D}^{[1]}\left(\mathbf{W}^{[2]}\right)^{\!\top}\cdots
+    \mathbf{D}^{[L-2]}\left(\mathbf{W}^{[L-1]}\right)^{\!\top}
+  = \mathbf{P}_1 ,
+\]
+suy ra~\eqref{eq:deltaJ}.
+
+\emph{Bước 3 (bất đẳng thức SVD).} Viết $\mathbf{J}=\mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^{\top}$
+với $\mathbf{U},\mathbf{V}$ trực giao $n\times n$ và
+$\boldsymbol{\Sigma}=\operatorname{diag}(\sigma_1\ge\dots\ge\sigma_n\ge0)$. Khi đó
+$\mathbf{J}^{\top}\boldsymbol{\delta}=\mathbf{V}\boldsymbol{\Sigma}\mathbf{U}^{\top}\boldsymbol{\delta}$ và, vì
+$\mathbf{V}$ trực giao,
+\[
+  \left\|\mathbf{J}^{\top}\boldsymbol{\delta}\right\|^{2}
+  = \sum_{i=1}^{n}\sigma_i^{2}\left(\mathbf{u}_i^{\top}\boldsymbol{\delta}\right)^{2},
+  \qquad
+  \sum_{i=1}^{n}\left(\mathbf{u}_i^{\top}\boldsymbol{\delta}\right)^{2}=\|\boldsymbol{\delta}\|^{2}
+\]
+(đẳng thức sau do $\mathbf{U}$ trực giao). Tổng thứ nhất là trung bình có trọng số của
+$\sigma_i^2$ nhân $\|\boldsymbol{\delta}\|^2$, nên nằm giữa $\sigma_n^{2}\|\boldsymbol{\delta}\|^{2}$ và
+$\sigma_1^{2}\|\boldsymbol{\delta}\|^{2}$; lấy căn bậc hai được~\eqref{eq:twoside}. Dấu bằng
+xảy ra khi $\boldsymbol{\delta}=\mathbf{u}_n$ (vế trái) hoặc $\mathbf{u}_1$ (vế phải).\hfill$\square$
+
+\medskip
+\noindent Hệ quả. Tính dưới nhân của chuẩn phổ cho
+$\sigma_{\max}(\mathbf{J})\le\prod_{k=2}^{L-1}\left\|\mathbf{W}^{[k]}\right\|_2
+\max_i\left|\sigma'(z^{[k-1]}_i)\right|$, tức chặn kiểu $c^{\,L-2}$ của~\eqref{eq:governing}.
+Điểm khác biệt là~\eqref{eq:twoside} là chặn \emph{hai chiều} và đúng cho \emph{mọi}
+vector $\boldsymbol{\delta}^{[L-1]}$, trong khi $c$ chỉ cho vế phải. Vế trái cho thấy
+điều mà $c$ không nói được: nếu $\sigma_{\min}(\mathbf{J})$ rất nhỏ thì tồn tại
+những hướng mà tín hiệu lỗi hầu như không về tới tầng $1$, dù $\sigma_{\max}(\mathbf{J})$
+lớn. Tỉ số $\kappa(\mathbf{J})=\sigma_{\max}/\sigma_{\min}$ đo mức độ bất đồng đều đó.
+(Gradient theo $\mathbf{W}^{[1]}$ còn nhân thêm $(\mathbf{a}^{[0]})^{\top}$ theo~\eqref{eq:gradW},
+nên so sánh với chuẩn gradient ở Mục~\ref{sec:thucnghiem} chỉ có ý nghĩa ở bậc độ lớn.)
+
+\paragraph{Dynamical Isometry.} Xiao và cộng sự~\cite{Xiao2018DynIso} gọi
+\emph{dynamical isometry} là sự cân bằng (equilibration) các giá trị kỳ dị của
+Jacobian đầu vào--đầu ra. Trong tài liệu này ta dùng dạng cụ thể nhất của nó, là
+cách diễn đạt của tài liệu chứ không trích từ tóm tắt bài báo: mọi
+$\sigma_i(\mathbf{J})\approx1$, khi đó $\|\boldsymbol{\delta}^{[1]}\|\approx\|\boldsymbol{\delta}^{[L-1]}\|$ cho
+\emph{mọi} vector theo~\eqref{eq:twoside}, không chỉ trung bình. Khởi tạo Xavier và He
+nhắm vào một điều kiện yếu hơn. Nếu $\boldsymbol{\delta}^{[L-1]}$ có phân phối đẳng hướng
+(cùng phương sai $s^2$ trên mọi toạ độ, không tương quan) thì
+$\mathbb{E}\|\mathbf{J}^{\top}\boldsymbol{\delta}^{[L-1]}\|^{2}=s^{2}\|\mathbf{J}\|_F^{2}
+=n s^{2}\cdot\mathrm{RMS}(\sigma)^{2}$, với $\mathrm{RMS}(\sigma)=\sqrt{n^{-1}\sum_i\sigma_i^{2}}$.
+Vì vậy việc bảo toàn \emph{phương sai} tín hiệu, theo (G1)--(G3), tương ứng với
+$\mathrm{RMS}(\sigma)\approx1$: một đại lượng trung bình bậc hai, không ràng buộc
+từng $\sigma_i$. Đây chỉ là một gợi ý; Mục~\ref{subsec:jacobian-exp} đo cả hai đại lượng: ở ReLU + He, $\mathrm{RMS}(\sigma)$
+gần $1$ trong khi phổ còn rất xa dạng đồng đều (Bảng~\ref{tab:jacobian-spectrum}),
+phù hợp với nhận xét trên; ở sigmoid + Xavier, $\mathrm{RMS}(\sigma)$ đã nhỏ hơn $1$ nhiều
+bậc, tức Xavier không giữ được ngay cả đại lượng trung bình này khi đi qua sigmoid
+(hệ số $\sigma'(0)=1/4$ và độ bão hoà không được tính vào $s^{2}$).
+
+\paragraph{Khởi tạo trực giao.} Xiao và cộng sự~\cite{Xiao2018DynIso} cho thấy mạng
+tích chập thuần, không kết nối tắt và không chuẩn hoá, có thể được huấn luyện với
+$10{,}000$ tầng trở lên chỉ nhờ một sơ đồ khởi tạo phù hợp; điều kiện dynamical
+isometry buộc toán tử tích chập là một phép biến đổi trực giao (bảo toàn chuẩn). Đó là
+đường thứ tư đạt dynamical isometry mà không cần kết nối tắt. Tài liệu này
+\emph{không} thực nghiệm với khởi tạo trực giao, và chỉ dẫn lại điều được nêu trong
+tóm tắt của bài báo.
+
+\paragraph{Chuẩn hoá ở mạng thuần.} Yang và cộng sự~\cite{Yang2019MeanField} xây dựng
+lý thuyết trường trung bình cho BatchNorm trong mạng truyền thẳng kết nối đầy đủ, rộng,
+tại bước khởi tạo: gradient tăng theo hàm mũ của độ sâu, hiện tượng này không loại
+bỏ được bằng cách chỉnh phương sai khởi tạo hay đổi hàm kích hoạt, và chính BatchNorm là
+nguyên nhân. Hệ quả là mạng BatchNorm thuần không có kết nối tắt không huấn luyện được ở
+độ sâu lớn với các sơ đồ khởi tạo thông dụng. Phần (d) của Mục~\ref{sec:training-dynamics}
+đối chiếu dự báo này với số liệu của PlainNet + BatchNorm.
+}

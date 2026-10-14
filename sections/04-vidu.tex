@@ -205,10 +205,15 @@ không còn dấu vết nào của $\mathcal{L}$. Kiểm chứng bằng số:
   \bigl[0.235004\times0.5\bigr]\bigl[0.244042\times0.5\bigr]\frac{1.0}{0.577185}
   = 0.024841 ,
 \]
-đúng bằng tỉ lệ đã tính ở cả hai cột của bảng dưới.
+đúng bằng tỉ lệ đã tính ở cả hai hàng của Bảng~\ref{tab:loss-compare}.
 
 \begin{table}[H]
 \centering
+\begin{captionaboveboxaivn}
+\captab{Cross-entropy phóng đại toàn bộ trường gradient (cột $2$--$4$) nhưng
+không làm phẳng nó: tỉ lệ giữa tầng đầu và tầng cuối ở cột cuối là một con số
+\emph{giống hệt nhau}, đúng như~\eqref{eq:lossfree} tiên đoán.\label{tab:loss-compare}}
+\end{captionaboveboxaivn}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -222,12 +227,6 @@ MSE, $\tfrac12(a_3-y)^2$ & $0.139978$ & $0.080793$ & $0.002007$ & $0.024841$ \\
 Cross-entropy nhị phân   & $0.571652$ & $0.329949$ & $0.008196$ & $0.024841$ \\
 \bottomrule
 \end{tabular}
-
-\begin{captionbelowboxaivn}
-Bảng 2: Cross-entropy phóng đại toàn bộ trường gradient (cột $2$--$4$) nhưng
-không làm phẳng nó: tỉ lệ giữa tầng đầu và tầng cuối ở cột cuối là một con số
-\emph{giống hệt nhau}, đúng như~\eqref{eq:lossfree} tiên đoán.
-\end{captionbelowboxaivn}
 \end{table}
 
 \begin{notebox}

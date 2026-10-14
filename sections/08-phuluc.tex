@@ -1,0 +1,47 @@
+\clearpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}.}
+
+\section{Hình bổ sung: \texorpdfstring{$\log_{10}\rho$}{log10 rho} theo độ sâu tại bước khởi tạo}
+\label{app:phu-luc-a}
+
+Hình~\ref{fig:gradnorm} vẽ lại các cột $\log_{10}\rho$ của Bảng~\ref{tab:grad-init}
+dưới dạng đồ thị; dữ liệu trùng với bảng nên hình được đưa về phụ lục.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.80\linewidth, height=6.0cm,
+    xlabel={Độ sâu $L$},
+    ylabel={$\log_{10}\rho$ (trung bình $\pm$ độ lệch chuẩn)},
+    xtick={5,10,20}, xmin=3, xmax=22,
+    ymin=-14, ymax=1,
+    axis lines=left,
+    legend style={font=\scriptsize, at={(0.03,0.03)}, anchor=south west, draw=none, fill=none},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    grid=major, grid style={gray!20},
+]
+\addplot[thick, aivnGreen, mark=*, mark size=1.6pt,
+         error bars/.cd, y dir=both, y explicit] coordinates {
+  (5,-2.78) +- (0,0.358) (10,-6.19) +- (0,0.373) (20,-12.7) +- (0,0.29)
+};
+\addlegendentry{A: sigmoid + Xavier}
+\addplot[thick, brandIndigo, mark=square*, mark size=1.5pt,
+         error bars/.cd, y dir=both, y explicit] coordinates {
+  (5,-0.74) +- (0,0.135) (10,-0.638) +- (0,0.358) (20,-0.53) +- (0,0.409)
+};
+\addlegendentry{B: ReLU + He}
+\end{axis}
+\end{tikzpicture}
+
+\begin{figurecaptionmodern}
+\capfig{$\log_{10}\rho$, với $\rho=\|\mathbf{g}^{[1]}\|_F/\|\mathbf{g}^{[L]}\|_F$, theo độ
+sâu $L\in\{5,10,20\}$ của MLP rộng $64$ tại bước khởi tạo, trung bình $\pm$ độ lệch
+chuẩn trên $5$ hạt giống. Điều kiện A (sigmoid + Xavier) giảm gần tuyến tính theo
+$L$ (khoảng $0.2$ mỗi tầng); điều kiện B (ReLU + He) nằm gần $0$ nhưng thanh sai
+số rộng dần theo $L$. Trục $y$ là $\log_{10}\rho$ (tương đương thang
+log).\label{fig:gradnorm}}
+\end{figurecaptionmodern}
+\end{figure}

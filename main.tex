@@ -70,7 +70,7 @@
 \setlength{\cftaftertoctitleskip}{2em}
 \setlength{\cftbeforesubsecskip}{7pt} % giãn cách subitem mục lục
 \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
-\setlength{\cftsecnumwidth}{3em}
+\setlength{\cftsecnumwidth}{3.5em}
 \renewcommand{\cftsecaftersnum}{\quad}
 \renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
 \setlength{\cftsubsecnumwidth}{4em}
@@ -123,7 +123,7 @@
 \setlength{\parskip}{0.3em}
 
 % Table
-\newtcolorbox{captionbelowboxaivn}{
+\newtcolorbox{captionaboveboxaivn}{
     colback=aivnGreen,
     colframe=aivnGreen,
     boxrule=0pt,
@@ -136,8 +136,13 @@
     boxsep=4pt,
     halign=center,
     % fontupper=\bfseries\color{white}
-    fontupper=\color{white}
+    fontupper=\color{white},
+    after skip=6pt
 }
+
+% Counter riêng cho Bảng; caption đặt TRÊN bảng, nhãn đặt trong đối số
+\newcounter{bang}
+\newcommand{\captab}[1]{\refstepcounter{bang}Bảng~\thebang:~#1}
 
 % Figure
 \newtcolorbox{figurecardcaptionaivn}{
@@ -598,6 +603,7 @@
 \input{sections/05-bptt}
 \input{sections/06-thucnghiem}
 \input{sections/07-tongket}
+\input{sections/08-phuluc}
 
 \printbibliography[title={Tài liệu tham khảo}]
 

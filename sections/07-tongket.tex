@@ -11,10 +11,19 @@ Chặn này chỉ nói một chiều: $c<1$ đủ để gradient co theo hàm m�
 không bảo đảm điều gì về giá trị thực (Mục~\ref{sec:thucnghiem} đo được
 $c\approx2.4$--$2.68$ ở điều kiện ReLU + He mà không có bùng nổ). Các kỹ thuật
 thực hành dưới đây có thể đọc như những cách nới hoặc tránh chặn đó --- một góc
-nhìn hữu ích, không phải một định lý phân loại.
+nhìn hữu ích, không phải một định lý hay một phân loại vét cạn: khởi tạo trực giao
+theo hướng Dynamical Isometry (Mục~\ref{subsec:dyniso}) là một hướng nữa, không nằm
+trong bảng. Bảng~\ref{tab:nguyen-ly-khac-phuc} tóm tắt từng nguyên nhân cùng nguyên lý
+khắc phục tương ứng.
 
 \begin{table}[H]
 \centering
+\begin{captionaboveboxaivn}
+\captab{Phân loại nguyên nhân biến đổi gradient và nguyên lý khắc phục tương ứng,
+đọc qua chặn trên $c = \sigma_{\max}(\mathbf{W})\cdot\max\sigma'$. Đọc bảng theo hàng:
+mỗi nguyên lý nhắm vào đúng một thừa số của $c$ (hoặc vào cấu trúc tích), nên
+chúng bổ sung chứ không thay thế nhau.\label{tab:nguyen-ly-khac-phuc}}
+\end{captionaboveboxaivn}
 \renewcommand{\arraystretch}{1.25}\small
 \begin{tabularx}{\linewidth}{@{}
   >{\raggedright\arraybackslash\hsize=0.80\hsize}X
@@ -56,11 +65,6 @@ Cổng cộng tính: LSTM, GRU $\Rightarrow$ đường dẫn gần đồng nhấ
 gradient cho chiều bùng~nổ \\
 \bottomrule
 \end{tabularx}
-
-\begin{captionbelowboxaivn}
-Bảng 6: Phân loại nguyên nhân biến đổi gradient và nguyên lý khắc phục tương ứng,
-đọc qua chặn trên $c = \sigma_{\max}(\mathbf{W})\cdot\max\sigma'$.
-\end{captionbelowboxaivn}
 \end{table}
 
 \subsection{Bốn nguyên lý, đọc qua lăng kính của \texorpdfstring{$c$}{c}}
@@ -86,14 +90,26 @@ $\operatorname{Var}(w)=2/n_{\text{in}}$, với hệ số $2$ bù cho việc ReLU
 một nửa số nơ-ron. Đây là một trong những can thiệp rẻ nhất: nó không tốn thêm phép tính nào
 sau bước khởi tạo.
 
-\textbf{BatchNorm và LayerNorm --- giữ $\mathbf{z}$ ngoài vùng bão hoà.} Khởi tạo
-chỉ tác động lên phân phối tiền kích hoạt ở bước $0$; khi huấn luyện tiến triển, phân phối của
-$\mathbf{z}$ trôi đi và có thể trượt vào vùng bão hoà, kéo $\max\sigma'$ xuống.
-Chuẩn hoá~\cite{IoffeSzegedy2015} tái định tâm và tái co giãn $\mathbf{z}$ ở mỗi
-bước, giữ nó quanh gốc nơi $\sigma'$ đạt cực đại. Nói cách khác, chuẩn hoá
-giúp \emph{duy trì} trong quá trình huấn luyện điều kiện mà khởi tạo chỉ đặt
-ở bước đầu --- trong phạm vi các giả thiết của nó (lô đủ lớn với BatchNorm,
-tham số co giãn học được không trôi quá xa).
+\textbf{BatchNorm và LayerNorm --- nhắm giữ $\mathbf{z}$ ngoài vùng bão hoà, nhưng không có
+đảm bảo.} Khởi tạo He hay Xavier chỉ đảm bảo phân phối tiền kích hoạt ở bước $t=0$; khi
+huấn luyện tiến triển, phân phối của $\mathbf{z}$ trôi đi và có thể trượt vào vùng bão
+hoà, kéo $\max\sigma'$ xuống. Chuẩn hoá~\cite{IoffeSzegedy2015} nhằm duy trì điều kiện đó
+trong huấn luyện bằng cách tái định tâm và tái co giãn $\mathbf{z}$ ở mỗi bước, nhưng
+\emph{không có gì đảm bảo} nó giữ được sự ổn định, và chỉ đáng tin trong phạm vi các
+giả thiết của nó (lô đủ lớn với BatchNorm, tham số co giãn học được không trôi quá xa).
+Ở mạng thuần rất sâu, lý thuyết trường trung bình của Yang và cộng sự~\cite{Yang2019MeanField}
+dự báo chính BatchNorm có thể gây bùng nổ gradient tại khởi tạo. Số liệu ở
+Mục~\ref{sec:training-dynamics}, phần (d), phù hợp với dự báo đó: PlainNet ReLU + Kaiming + BN có
+$\log_{10}\rho$ tại epoch $0$ là $0.862$, $1.56$, $2.81$ ở $L=8,16,32$, và ở $L=32$ stem gnorm
+là $626$ so với $2.95$ khi không có BN (Bảng~\ref{tab:training-dynamics}). Kết quả này chỉ
+thuộc thiết lập MLP rộng $256$, CIFAR-10 $10{,}000$ ảnh, SGD $\eta=0.1$, $3$ hạt giống, nên không
+đủ để nói về BatchNorm nói chung. Một hướng khác là khởi tạo trực giao theo
+Dynamical Isometry~\cite{Xiao2018DynIso}, nhắm vào phổ của cả Jacobian đầu-cuối
+(Mục~\ref{subsec:dyniso}); tài liệu này không thực nghiệm với nó, chỉ đo phổ tại khởi
+tạo ở Bảng~\ref{tab:jacobian-spectrum}. Trong nhóm ReLU + Kaiming ở $L=32$ của
+Bảng~\ref{tab:training-dynamics}, chỉ ResNet + BN vừa giữ $\rho$ gần $1$ vừa để stem học được,
+với độ chính xác test cao nhất trong bảng; vì không so sánh với khởi tạo trực giao, ta không
+kết luận đó là phương án rẻ nhất hay bền nhất.
 
 \textbf{Kết nối tắt --- phá vỡ cấu trúc tích.} Ba biện pháp trên đều cố đưa $c$
 về $1$, nhưng vẫn chấp nhận rằng gradient là một \emph{tích}. ResNet~\cite{He2016ResNet}
@@ -108,7 +124,7 @@ $\mathbf{I} + \sum_k \mathcal{F}'_k + (\text{các số hạng bậc cao})$: luô
 một số hạng \emph{bậc không} bằng đúng $\mathbf{I}$. Số hạng này không suy giảm
 theo chiều sâu; tổng vẫn có thể nhỏ hơn nếu các số hạng khác triệt tiêu một
 phần với nó, nhưng khi các nhánh $\mathcal{F}'_k$ nhỏ lúc khởi tạo thì đường tắt
-chiếm ưu thế. Đây là một lý do quan trọng khiến He và cộng sự huấn luyện được
+chiếm ưu thế. Điều này phù hợp với việc He và cộng sự huấn luyện được
 mạng $152$ tầng, trong khi trong cùng bài báo, mạng thuần tích $34$ tầng có sai
 số huấn luyện \emph{cao hơn} mạng thuần tích $18$ tầng. Về mặt nguyên lý, đây
 đúng là cơ chế mà cổng LSTM dùng trong miền thời gian (Mục~\ref{sec:bptt}), chỉ
@@ -117,7 +133,7 @@ chuyển sang miền chiều sâu.
 \begin{guidelinebox}{Thứ tự ưu tiên khi gặp mạng sâu không học được}
 $(1)$ Xác nhận đây là vấn đề tối ưu hoá bằng cách kiểm tra sai số \emph{huấn
 luyện}. $(2)$ In bảng chuẩn gradient theo tầng. $(3)$ Nếu triệt tiêu: đổi sang
-ReLU/GELU và khởi tạo He --- đây là hai thay đổi rẻ nhất, thường đủ. $(4)$ Nếu
+ReLU/GELU và khởi tạo He --- đây là hai thay đổi rẻ nhất về chi phí tính toán, và có thể đủ. $(4)$ Nếu
 vẫn chưa đủ: thêm chuẩn hoá. $(5)$ Nếu mạng rất sâu: thêm kết nối tắt. $(6)$ Nếu
 bùng nổ: cắt ngưỡng gradient trước, rồi mới xem lại khởi tạo.
 \end{guidelinebox}
