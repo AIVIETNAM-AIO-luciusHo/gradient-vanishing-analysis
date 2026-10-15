@@ -29,3 +29,5 @@ tuan3_baocao_tien_do.md
 
 # NOTE: *.log is deliberately NOT ignored globally --
 # training_dynamics.log is kept as empirical evidence.
+experiment_stdout.txt
+training_dynamics_sanity.log
