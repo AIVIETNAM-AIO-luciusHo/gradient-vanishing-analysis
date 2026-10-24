@@ -1,0 +1,5 @@
+Họ và tên: Hồ Văn Lực
+Module: 04 - Gradient Vanishing Analysis (AIO 2026)
+Báo cáo: 40 trang (main.pdf)
+Link GitHub Repository: https://github.com/AIVIETNAM-AIO-luciusHo/gradient-vanishing-analysis
+Commit Hash: e91c1ff

@@ -2,7 +2,7 @@
 
 **Tác giả:** Hồ Văn Lực, Phùng Đức Tuấn Kiệt — AIO2026, Module 4
 
-Báo cáo LaTeX 32 trang (tiếng Việt) về *vanishing / exploding gradient*: từ tích Jacobian và chặn
+Báo cáo LaTeX 40 trang (tiếng Việt) về *vanishing / exploding gradient*: từ tích Jacobian và chặn
 $c = \sigma_{\max}(W)\cdot\max\sigma'$, qua minh hoạ số học và BPTT, đến hai thí nghiệm PyTorch có thể
 tái lập:
 
@@ -89,13 +89,10 @@ bản thư viện, chạy lại cho cùng kết quả (cùng seed hai lần đư
 ### Báo cáo LaTeX
 
 Cần một bản TeX Live đầy đủ (pdfLaTeX, `vntex`, `biblatex`, `tcolorbox`, `pgfplots`, `fontawesome5`).
-Biên dịch **từ thư mục gốc của repo**:
+Chạy từ thư mục gốc của repo (các file `.sty` cục bộ được tìm theo thư mục hiện hành):
 
 ```bash
-pdflatex -interaction=nonstopmode main.tex
-bibtex main
-pdflatex -interaction=nonstopmode main.tex
-pdflatex -interaction=nonstopmode main.tex   # -> main.pdf, 32 trang
+./build.sh   # pdflatex -> bibtex -> pdflatex x2  =>  main.pdf, 40 trang
 ```
 
 ## Cấu trúc repo
@@ -110,7 +107,9 @@ pdflatex -interaction=nonstopmode main.tex   # -> main.pdf, 32 trang
 │   ├── 04-vidu.tex                  # IV.  Minh hoạ số học ba tầng (MSE vs BCE)
 │   ├── 05-bptt.tex                  # V.   Lan truyền ngược theo thời gian
 │   ├── 06-thucnghiem.tex            # VI.  Thực nghiệm (Phase 1 + VI.4 Phase 2)
-│   └── 07-tongket.tex               # VII. Tổng kết và nguyên lý khắc phục
+│   ├── 07-tongket.tex               # VII. Tổng kết và nguyên lý khắc phục
+│   └── 08-phuluc.tex                # Phụ lục: hình bổ sung
+├── build.sh                         # build báo cáo (pdflatex + bibtex)
 ├── references.bib
 ├── vipythonhighlight.sty            # style highlight Python (tiếng Việt)
 ├── tvietlistings.sty                # tiếng Việt trong listings
@@ -118,6 +117,10 @@ pdflatex -interaction=nonstopmode main.tex   # -> main.pdf, 32 trang
 ├── figures/                         # hình Phase 2 (sinh bởi script)
 ├── experiment.py                    # Phase 1
 ├── results.md
+├── experiment_jacobian.py           # phổ Jacobian đầu-cuối tại khởi tạo -> results_jacobian.md
+├── results_jacobian.md
+├── analysis_decay.py                # Total Degradation, decay_slope, R^2 từ results_training.json
+├── results_decay.md                 # (không huấn luyện lại)
 ├── experiment_training_dynamics.py  # Phase 2
 ├── results_training.json            # nguồn sự thật: mọi số liệu theo từng run/epoch
 ├── results_training.md              # bảng tổng hợp
