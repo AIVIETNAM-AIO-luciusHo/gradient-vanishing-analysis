@@ -98,6 +98,10 @@ Chạy từ thư mục gốc của repo (các file `.sty` cục bộ được t�
 ./build.sh   # pdflatex -> bibtex -> pdflatex x2  =>  main.pdf, 40 trang
 ```
 
+`main.pdf` đã được commit sẵn nên chỉ cần build lại khi sửa `main.tex` hoặc `sections/`. Các file
+trung gian (`.aux`, `.bbl`, `.toc`, `main.log`, ...) nằm trong `.gitignore`; kiểm tra số trang bằng
+`pdfinfo main.pdf | grep Pages`.
+
 ## Cấu trúc repo
 
 ```
