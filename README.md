@@ -78,6 +78,9 @@ Môi trường gốc: Python 3.12.3, PyTorch 2.14.0+cpu, CPU 6 luồng.
 pip install torch torchvision numpy matplotlib
 
 python experiment.py                              # Phase 1 -> results.md
+python experiment_jacobian.py                     # phổ Jacobian tại khởi tạo -> results_jacobian.md
+python analysis_decay.py                          # TD / decay_slope / R^2 -> results_decay.md
+                                                  # (chỉ đọc results_training.json, không huấn luyện lại)
 python experiment_training_dynamics.py --sanity   # chỉ chạy self-check
 python experiment_training_dynamics.py            # Phase 2 -> results_training.{json,md},
                                                   # figures/*.png, training_dynamics.log (~17 phút CPU)
